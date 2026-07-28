@@ -34,3 +34,14 @@ export const MODELS: ModelOption[] = [
 ]
 
 export const DEFAULT_MODEL_ID = 'openai/gpt-4o-mini'
+
+/**
+ * Resolves a persisted model id against the curated catalog. A persisted id
+ * that is missing, empty, or no longer curated falls back to the default
+ * rather than flowing straight into a request (AC-8.x: a stale selection
+ * never blocks or silently breaks continuation/revision).
+ */
+export function resolveModelId(persistedId?: string): string {
+  if (persistedId && MODELS.some((m) => m.id === persistedId)) return persistedId
+  return DEFAULT_MODEL_ID
+}

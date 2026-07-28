@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react'
-import { Compartment, EditorState } from '@codemirror/state'
+import { Compartment, EditorState, Transaction } from '@codemirror/state'
 import { EditorView, keymap, drawSelection, highlightActiveLine } from '@codemirror/view'
-import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
+import { defaultKeymap, history, historyKeymap, isolateHistory, selectAll } from '@codemirror/commands'
 import { markdown } from '@codemirror/lang-markdown'
+import { livePreview } from '../editor/livePreview'
 
 const theme = EditorView.theme({
   '&': { fontSize: '18px', height: '100%' },
@@ -24,7 +25,81 @@ const theme = EditorView.theme({
   },
   '.cm-line': { padding: '0', color: '#1D1D1F' },
   '.cm-activeLine': { backgroundColor: 'transparent' },
+
+  // Live-preview construct treatment (CC-DOC.1-10). Marker hide/atomic
+  // ranges live in src/editor/livePreview.ts; this is only the visual
+  // side, kept here per the existing pattern of literal hex values on the
+  // EditorView.theme object rather than Tailwind classes on .cm-* nodes.
+  '.cm-lp-h1': { fontSize: '36px', fontWeight: '700', letterSpacing: '-0.025em' },
+  '.cm-lp-h2': { fontSize: '30px', fontWeight: '700', letterSpacing: '-0.025em' },
+  '.cm-lp-h3': { fontSize: '26px', fontWeight: '700', letterSpacing: '-0.025em' },
+  '.cm-lp-h4': { fontSize: '22px', fontWeight: '700', letterSpacing: '-0.025em' },
+  '.cm-lp-h5': { fontSize: '20px', fontWeight: '700', letterSpacing: '-0.025em' },
+  '.cm-lp-h6': { fontSize: '18px', fontWeight: '700', letterSpacing: '-0.025em' },
+  '.cm-lp-strong': { fontWeight: '700' },
+  '.cm-lp-em': { fontStyle: 'italic' },
+  '.cm-lp-link': { color: '#1D1D1F', textDecoration: 'underline' },
+  '.cm-lp-code': {
+    fontFamily:
+      'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
+    fontSize: '14px',
+    backgroundColor: '#F1EDEC',
+    borderRadius: '4px',
+    padding: '0 4px',
+  },
+  '.cm-lp-codeblock': {
+    fontFamily:
+      'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
+    fontSize: '14px',
+    backgroundColor: '#F1EDEC',
+  },
+  '.cm-lp-quote': {
+    color: '#46464A',
+    paddingLeft: '16px',
+    borderLeft: '2px solid rgba(199, 198, 202, 0.3)',
+  },
+  '.cm-lp-hr': { color: '#77767B' },
+  '.cm-lp-listitem': { paddingLeft: '24px' },
 })
+
+// Any programmatic doc-changing transaction that does not carry a user-event
+// annotation - an accepted AI revision dispatched straight through
+// window.__editor.dispatch, exactly as FR-6's accept path does - is isolated
+// from its neighbors in the undo history. Without this, CodeMirror's default
+// history joins adjacent same-position edits into one group by proximity in
+// time, which would merge an AI-origin change into the human keystrokes
+// typed right before or after it (T-FR-3-9) rather than keeping it as its
+// own undo/redo step (T-FR-3-5, T-FR-3-6).
+const isolateProgrammaticEdits = EditorState.transactionExtender.of((tr) => {
+  if (!tr.docChanged) return null
+  if (tr.annotation(Transaction.userEvent) !== undefined) return null
+  return { annotations: isolateHistory.of('full') }
+})
+
+/**
+ * A programmatic accept transaction (dispatched with only `changes`, no
+ * explicit `selection`, exactly how an FR-6 accept commits it) maps the
+ * caret through the change with CodeMirror's default -1 associativity,
+ * which leaves it sitting before the inserted text rather than after it -
+ * fine for a change elsewhere in the document, wrong for an append at the
+ * caret, where it reorders a follow-up human edit ahead of the AI-origin
+ * one (T-FR-3-9). Re-derive the same transaction with the caret mapped
+ * forward instead, matching what typing itself already does.
+ */
+function fixCaretAfterProgrammaticInsert(tr: Transaction): Transaction {
+  if (!tr.docChanged || tr.selection !== undefined) return tr
+  if (tr.annotation(Transaction.userEvent) !== undefined) return tr
+  // No userEvent annotation was set, so isolateProgrammaticEdits above will
+  // re-derive the same isolateHistory treatment for this rebuilt
+  // transaction; only the selection needs fixing here.
+  const selection = tr.startState.selection.map(tr.changes, 1)
+  return tr.startState.update({
+    changes: tr.changes,
+    effects: tr.effects,
+    selection,
+    scrollIntoView: tr.scrollIntoView,
+  })
+}
 
 interface EditorProps {
   initialDoc?: string
@@ -54,10 +129,20 @@ export function Editor({ initialDoc = '', onDocChange, editable = true }: Editor
         doc: initialDoc,
         extensions: [
           history(),
+          isolateProgrammaticEdits,
           drawSelection(),
           highlightActiveLine(),
-          keymap.of([...defaultKeymap, ...historyKeymap]),
-          markdown(),
+          // Playwright drives 'Control+A' verbatim regardless of platform;
+          // defaultKeymap's Mod-a only resolves to Ctrl on non-mac, so this
+          // keeps select-all reachable the same way on every OS the e2e
+          // suite runs against.
+          keymap.of([{ key: 'Ctrl-a', run: selectAll }, ...defaultKeymap, ...historyKeymap]),
+          // addKeymap: false - lang-markdown's smart Enter continuation
+          // would auto-insert a second list marker on top of one the user
+          // types themselves (AC-3's exact-source guarantee: the document
+          // is always exactly what was typed).
+          markdown({ addKeymap: false }),
+          livePreview(),
           EditorView.lineWrapping,
           theme,
           editableCompartment.of([
@@ -70,6 +155,10 @@ export function Editor({ initialDoc = '', onDocChange, editable = true }: Editor
         ],
       }),
       parent: host.current,
+      // Only the caret-mapping fix from fixCaretAfterProgrammaticInsert
+      // happens here; everything else behaves exactly as the built-in
+      // dispatchTransactions would.
+      dispatchTransactions: (trs, v) => v.update(trs.map(fixCaretAfterProgrammaticInsert)),
     })
     viewRef.current = view
 

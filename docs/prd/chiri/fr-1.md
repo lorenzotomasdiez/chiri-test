@@ -5,6 +5,7 @@
 | Parent | [PRD](./index.md) |
 | Priority | P0 |
 | Status | Draft |
+| Implementation | Built, partially verified - 8 of 22 scenarios automated |
 | Depends on | None |
 | Tests | [FR-1 test plan](../../tests/chiri/fr-1.md) |
 

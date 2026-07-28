@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { DEFAULT_MODEL_ID } from '../core/models'
+import { resolveModelId } from '../core/models'
 import { KeyGate, type KeyGateState } from '../core/keygate'
 import type { Failure } from '../core/provider'
 import { createSettingsHandle } from '../storage/settings'
@@ -53,8 +53,11 @@ export const useAppStore = create<AppState>((set) => {
   return {
     predictionsEnabled: true,
     togglePredictions: () => set((s) => ({ predictionsEnabled: !s.predictionsEnabled })),
-    selectedModelId: settingsHandle.settings.model || DEFAULT_MODEL_ID,
-    setSelectedModelId: (id) => set({ selectedModelId: id }),
+    selectedModelId: resolveModelId(settingsHandle.settings.model),
+    setSelectedModelId: (id) => {
+      settingsHandle.settings.model = id
+      set({ selectedModelId: id })
+    },
 
     keyGateState: keyGate.state,
     keyGateFailure: keyGate.failure,

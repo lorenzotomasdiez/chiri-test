@@ -6,13 +6,15 @@ function controllableTransport() {
   let capturedSignal: AbortSignal
   let resolveResponse: (value: unknown) => void
 
-  const promise = new Promise((resolve) => {
+  const promise = new Promise<unknown>((resolve) => {
     resolveResponse = resolve
   })
 
-  const transport = (_req: unknown, signal: AbortSignal) => {
+  // Annotated rather than inferred: the body references the function's own
+  // return type, which tsc cannot resolve circularly.
+  const transport = (_req: unknown, signal: AbortSignal): Promise<unknown> => {
     capturedSignal = signal
-    return promise as ReturnType<typeof transport>
+    return promise
   }
 
   return {
@@ -33,7 +35,7 @@ describe('KeyGate', () => {
       transport,
       settings,
       now: () => Date.now(),
-      setTimeout: global.setTimeout,
+      setTimeout: globalThis.setTimeout,
     })
 
     // Submit the key

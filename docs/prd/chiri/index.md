@@ -133,25 +133,32 @@ The three structural guarantees that hold this in place are that continuations a
 
 ## 7. Functional Requirements
 
-| ID | Title | Priority | Detail |
-|---|---|---|---|
-| FR-1 | API key gate | P0 | [fr-1.md](./fr-1.md) |
-| FR-2 | Launch identity | P2 | Below |
-| FR-3 | Single Markdown document surface | P0 | Below |
-| FR-4 | Local persistence of the document | P0 | Below |
-| FR-5 | Inline continuation prediction | P0 | [fr-5.md](./fr-5.md) |
-| FR-6 | Selection-triggered AI revisions | P0 | [fr-6.md](./fr-6.md) |
-| FR-7 | Refine a revision in place | P0 | Below |
-| FR-8 | Model selector | P1 | Below |
-| FR-9 | Export the document | P1 | Below |
-| FR-10 | Prediction request discipline | P0 | Below |
-| FR-11 | Empty-document onboarding cue | P1 | Below |
-| FR-12 | AI failure and offline behavior | P0 | Below |
+| ID | Title | Priority | Implementation | Detail |
+|---|---|---|---|---|
+| FR-1 | API key gate | P0 | Built, partially verified | [fr-1.md](./fr-1.md) |
+| FR-2 | Launch identity | P2 | In progress | Below |
+| FR-3 | Single Markdown document surface | P0 | Built and verified | Below |
+| FR-4 | Local persistence of the document | P0 | Not started | Below |
+| FR-5 | Inline continuation prediction | P0 | Not started | [fr-5.md](./fr-5.md) |
+| FR-6 | Selection-triggered AI revisions | P0 | Not started | [fr-6.md](./fr-6.md) |
+| FR-7 | Refine a revision in place | P0 | Not started | Below |
+| FR-8 | Model selector | P1 | Built, partially verified | Below |
+| FR-9 | Export the document | P1 | Not started | Below |
+| FR-10 | Prediction request discipline | P0 | Not started | Below |
+| FR-11 | Empty-document onboarding cue | P1 | Not started | Below |
+| FR-12 | AI failure and offline behavior | P0 | Not started | Below |
+
+`Implementation` tracks whether the code exists and what proves it, and is separate from the `Status` field above, which tracks the maturity of this document.
+`Built and verified` means every scenario the requirement's test plan marks automatable is automated and passing.
+`Built, partially verified` means the feature works but a named subset of its plan is still unwritten, and the requirement names which.
 
 ### FR-1: API key gate
 
 **Priority:** P0
 **Depends on:** None
+**Implementation:** Built, partially verified.
+8 of the 22 test-plan scenarios are automated: T-FR-1-1, 3, 4, 5, 6, 7, 9, and 10.
+T-FR-1-2, T-FR-1-8, and T-FR-1-11 through T-FR-1-22 are not yet written, so mid-session revocation and key clearing rest on the implementation rather than on a passing test.
 
 Chiri requires the user's own OpenRouter API key, entered at runtime in a modal, and validates it with a live call to OpenRouter before unblocking the app.
 No key ships in the build, the key is stored only on the user's machine, and the app sends it nowhere except OpenRouter.
@@ -186,6 +193,10 @@ The exact minimum dwell value, the mark rendering, and the transition treatment 
 
 **Priority:** P0
 **Depends on:** FR-1
+**Implementation:** Built and verified.
+Every scenario the test plan marks automatable is automated and passing across Chromium, Firefox, and WebKit.
+T-FR-3-4 and T-FR-3-12 remain manual by the plan's own direction.
+Two of T-FR-3-7's five application states are deferred until FR-5 and FR-6 exist to produce them, and T-FR-3-5, T-FR-3-6 and T-FR-3-9 stage their accepted AI edits directly until the same two land.
 
 Chiri presents exactly one Markdown document, occupying the primary surface of the application, with no file tree, document list, tabs, or sidebar.
 The user writes Markdown and sees it rendered as structured text as they write, so the document reads as the thing it will become rather than as source code.
@@ -296,6 +307,11 @@ The refinement input's placement, affordance, and copy are owned by the future d
 
 **Priority:** P1
 **Depends on:** FR-1
+**Implementation:** Built, partially verified.
+11 of the 12 test-plan scenarios are automated and passing: T-FR-8-1 through T-FR-8-6 and T-FR-8-8 through T-FR-8-12.
+T-FR-8-7 is the plan's one manual-judgment scenario and is not automatable in a way that would mean anything.
+T-FR-8-3, T-FR-8-4, T-FR-8-8, and T-FR-8-12 are covered at the request-assembly and scheduler layer only.
+Their browser halves need a request the user can trigger from the UI, and src/core/schedule.ts is not yet wired into the editor, so they are owed once FR-5, FR-6, and FR-12 land.
 
 The user chooses which OpenRouter model powers Chiri's output, from a control in the application surface.
 The default is `openai/gpt-4o-mini`, preselected, because it is fast enough for continuation to arrive during a natural pause and capable enough for revision work.

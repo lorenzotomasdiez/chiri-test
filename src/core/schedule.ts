@@ -13,8 +13,17 @@ export interface InputSignal {
   cursor: number
 }
 
+/**
+ * What actually goes out to the transport: the input signal plus the model
+ * id in effect at dispatch time (FR-8). Snapshotted once, in `issue()`, so a
+ * selection change after dispatch never retargets a request already in flight.
+ */
+export interface DispatchedRequest extends InputSignal {
+  modelId?: string
+}
+
 export type Transport = (
-  req: InputSignal,
+  req: DispatchedRequest,
   signal: AbortSignal,
 ) => AsyncIterable<string> | Promise<AsyncIterable<string>>
 
@@ -30,6 +39,8 @@ export interface SchedulerOptions {
   onResult?: (text: string) => void
   /** Called per streamed chunk, so first paint can happen before completion (NFR-1). */
   onChunk?: (textSoFar: string) => void
+  /** Reads the currently selected model id, if the caller wants it snapshotted onto each dispatch. */
+  modelSource?: () => string
   /** Injected for tests; defaults to the real ones. */
   now?: () => number
   setTimeout?: (fn: () => void, ms: number) => ReturnType<typeof setTimeout>
@@ -119,17 +130,20 @@ export class Scheduler {
     const controller = new AbortController()
     this.inFlight = controller
 
-    void this.consume(signal, controller, generation)
+    const modelId = this.opts.modelSource?.()
+    const request: DispatchedRequest = modelId !== undefined ? { ...signal, modelId } : { ...signal }
+
+    void this.consume(request, controller, generation)
   }
 
   private async consume(
-    signal: InputSignal,
+    request: DispatchedRequest,
     controller: AbortController,
     generation: number,
   ): Promise<void> {
     let text = ''
     try {
-      const stream = await this.opts.transport(signal, controller.signal)
+      const stream = await this.opts.transport(request, controller.signal)
       for await (const chunk of stream) {
         if (controller.signal.aborted || generation !== this.generation) return
         text += chunk

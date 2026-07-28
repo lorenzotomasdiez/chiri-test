@@ -5,6 +5,8 @@
 | Requirement | [FR-1](../../prd/chiri/fr-1.md) |
 | Priority | P0 |
 | Scenarios | 22 |
+| Automated | 8 - T-FR-1-1, 3, 4, 5, 6, 7, 9, 10 |
+| Outstanding | 14 - T-FR-1-2, T-FR-1-8, T-FR-1-11 through T-FR-1-22 |
 | Last updated | 2026-07-28 |
 
 ## What this requirement promises

@@ -68,7 +68,7 @@ test('T-CC-SPLASH-2: the mark steps up to 256px at larger viewports (CC-SPLASH.2
   expect(mark.h).toBe(256)
 })
 
-test('T-CC-SPLASH-3: clicks and keystrokes on the launch screen dismiss nothing and lose no input (AC-2.4, CC-SPLASH.5)', async ({
+test('T-CC-SPLASH-3: clicks and keystrokes on the launch screen dismiss nothing and skip nothing ahead (AC-2.4, CC-SPLASH.5)', async ({
   page,
 }) => {
   await seedValidatedKey(page)
@@ -82,13 +82,14 @@ test('T-CC-SPLASH-3: clicks and keystrokes on the launch screen dismiss nothing 
   // click nor the typing may skip ahead.
   await expect(page.getByTestId('launch-splash')).toBeVisible()
 
-  // ...and once the dwell elapses, the typing that happened during it has not
-  // leaked into the document.
+  // ...and once the dwell elapses, the typing that happened during it is
+  // replayed into the document rather than lost (AC-2.4), which is what this
+  // test was really guarding: no dismissal, no skip-ahead, no lost input.
   await expect(page.locator('.cm-content')).toBeVisible()
   const doc = await page.evaluate(
     () => (window as unknown as { __editor?: { state: { doc: { toString(): string } } } }).__editor?.state.doc.toString(),
   )
-  expect(doc).toBe('')
+  expect(doc).toBe('hello')
 })
 
 test('T-CC-SPLASH-4: the launch state ends in exactly one transition, to the editor when a key is stored (AC-2.2, AC-2.3, CC-MOTION.2)', async ({

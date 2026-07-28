@@ -36,3 +36,7 @@ playwright/.cache/
 *.njsproj
 *.sln
 *.sw?
+
+# playwright-cli scratch: timestamped page snapshots and console logs from a
+# driven browser session, same disposable category as test-results/
+.playwright-cli/

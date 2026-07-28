@@ -22,7 +22,23 @@ const STORAGE_KEY = 'chiri-settings'
 export async function seedValidatedKey(page: Page) {
   await page.addInitScript(
     ([storageKey, apiKey]) => {
-      localStorage.setItem(storageKey, JSON.stringify({ apiKey }))
+      // Merge rather than overwrite. This init script re-runs on every
+      // navigation, including page.reload(), so writing `{ apiKey }` whole
+      // would erase every other persisted field - model, continuationEnabled -
+      // before the app boots and reads them back. A spec that reloads to prove
+      // something persisted would then be proving only that this helper
+      // rewrote it.
+      let existing: Record<string, unknown> = {}
+      try {
+        const raw = localStorage.getItem(storageKey)
+        if (raw) {
+          const parsed: unknown = JSON.parse(raw)
+          if (parsed && typeof parsed === 'object') existing = parsed as Record<string, unknown>
+        }
+      } catch {
+        existing = {}
+      }
+      localStorage.setItem(storageKey, JSON.stringify({ ...existing, apiKey }))
     },
     [STORAGE_KEY, SEEDED_API_KEY] as const,
   )

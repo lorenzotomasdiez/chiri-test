@@ -3,7 +3,7 @@ import { KeyGate } from './keygate'
 
 describe('KeyGate - account-restricted response', () => {
   it('T-FR-1-7: A key that authenticates but cannot make requests gets an account-condition message', async () => {
-    const transport = async (key: string, signal: AbortSignal) => {
+    const transport = async (_key: string, _signal: AbortSignal) => {
       // Simulate OpenRouter 402 response: authenticated but insufficient credits
       throw {
         status: 402,

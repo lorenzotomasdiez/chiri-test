@@ -5,6 +5,8 @@
 | Requirement | [FR-3](../../prd/chiri/index.md#fr-3-single-markdown-document-surface) |
 | Priority | P0 |
 | Scenarios | 13 |
+| Automated | 11 - T-FR-3-1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 13 |
+| Manual by design | 2 - T-FR-3-4 (round trip is identity by construction), T-FR-3-12 (latency at the 20,000-character ceiling) |
 | Last updated | 2026-07-28 |
 
 ## What this requirement promises
