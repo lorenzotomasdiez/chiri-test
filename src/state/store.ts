@@ -28,6 +28,13 @@ export interface AppState {
   selectedModelId: string
   setSelectedModelId: (id: string) => void
 
+  /** FR-9's source of truth for Copy/Download - mirrored from the editor's onDocChange. */
+  documentText: string
+  setDocumentText: (text: string) => void
+
+  /** FR-6's revision requests read the key from here rather than the settings module directly - mirrored from settingsHandle the same way keyGate's fields are. */
+  apiKey: string
+
   /** FR-1's five-state key gate, mirrored here from the KeyGate instance. */
   keyGateState: KeyGateState
   keyGateFailure: Failure | undefined
@@ -47,6 +54,7 @@ export const useAppStore = create<AppState>((set) => {
       keyGateFailure: keyGate.failure,
       keyGateDraft: keyGate.draftValue,
       hasStoredKey: settingsHandle.settings.apiKey.trim().length > 0,
+      apiKey: settingsHandle.settings.apiKey,
     })
   }
 
@@ -58,6 +66,11 @@ export const useAppStore = create<AppState>((set) => {
       settingsHandle.settings.model = id
       set({ selectedModelId: id })
     },
+
+    documentText: '',
+    setDocumentText: (text) => set({ documentText: text }),
+
+    apiKey: settingsHandle.settings.apiKey,
 
     keyGateState: keyGate.state,
     keyGateFailure: keyGate.failure,

@@ -1,15 +1,19 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Editor } from './components/Editor'
 import { TopBar } from './components/TopBar'
 import { KeyGateModal } from './components/KeyGateModal'
 import { LaunchSplash } from './components/LaunchSplash'
 import { useLaunchDwell } from './hooks/useLaunchDwell'
 import { useLaunchKeyBuffer } from './hooks/useLaunchKeyBuffer'
+import { usePersistDocument } from './hooks/usePersistDocument'
 import { useAppStore } from './state/store'
 
 export default function App() {
-  const [empty, setEmpty] = useState(true)
+  // null until the user has typed since boot - then the truth about
+  // emptiness, overriding whatever the persisted document loaded with.
+  const [typedEmpty, setTypedEmpty] = useState<boolean | null>(null)
   const keyGateState = useAppStore((s) => s.keyGateState)
+  const setDocumentText = useAppStore((s) => s.setDocumentText)
   const unblocked = keyGateState === 'unblocked'
   // AC-2.3's decision is already resolved by the time this component first
   // renders: keyGateState is derived synchronously from src/storage/settings.ts
@@ -19,12 +23,36 @@ export default function App() {
   // AC-2.4: keystrokes typed during the launch state are buffered, not lost,
   // and replayed into whichever surface comes next.
   const bufferedKeystrokes = useLaunchKeyBuffer(!launched)
+  // FR-4: the persisted document, loaded from IndexedDB before the Editor
+  // ever mounts - its mount effect is keyed on initialDoc, so loading it
+  // later would remount the view and destroy FR-3's undo history.
+  const { doc, onDocChange } = usePersistDocument()
+
+  // FR-9's source of truth mirrors whatever the Editor is about to mount
+  // with, not just what gets typed afterwards - a freshly-restored document
+  // must be exportable before its first edit. Runs once, the render doc
+  // first arrives.
+  useEffect(() => {
+    if (!doc) return
+    setDocumentText(doc.text + bufferedKeystrokes.current)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc])
 
   // AC-2.3: when the launch state ends, the next surface is the key gate if no
   // valid key is stored, or the editor if one is. Both branches already exist
   // below, so the launch state only has to gate them - which is also what
-  // makes AC-2.2's "exactly one transition" true by construction.
-  if (!launched) return <LaunchSplash />
+  // makes AC-2.2's "exactly one transition" true by construction. The
+  // persisted document must also be ready before that first surface exists,
+  // for the same mount-once reason.
+  if (!launched || !doc) return <LaunchSplash />
+
+  // The buffered keystrokes were typed blind, at the end of whatever was
+  // already there - so they land appended to the loaded document, with the
+  // caret following them; otherwise the caret returns to where it was left.
+  const initialDoc = doc.text + bufferedKeystrokes.current
+  const initialCaretOffset =
+    bufferedKeystrokes.current.length > 0 ? initialDoc.length : doc.caretOffset
+  const empty = typedEmpty ?? initialDoc.length === 0
 
   return (
     <>
@@ -43,8 +71,13 @@ export default function App() {
             </p>
           )}
           <Editor
-            initialDoc={bufferedKeystrokes.current}
-            onDocChange={(text) => setEmpty(text.length === 0)}
+            initialDoc={initialDoc}
+            initialCaretOffset={initialCaretOffset}
+            onDocChange={(text, caretOffset) => {
+              setTypedEmpty(text.length === 0)
+              setDocumentText(text)
+              onDocChange(text, caretOffset)
+            }}
             editable={unblocked}
           />
         </div>

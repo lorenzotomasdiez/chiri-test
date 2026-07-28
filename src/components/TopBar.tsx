@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { Icon } from './Icon'
 import { PredictionsToggle } from './PredictionsToggle'
 import { ModelSelector } from './ModelSelector'
+import { FailureBanner } from './FailureBanner'
+import { useAppStore } from '../state/store'
+import { deriveFilename, toExportText } from '../core/export'
 
 /**
  * The fixed 48px top bar (CC-NAV): wordmark, Predictions toggle, model
@@ -10,19 +13,48 @@ import { ModelSelector } from './ModelSelector'
  * about the brand and not about the action buttons, where CC-NAV.7 requires
  * icon plus label.
  *
- * NOT IMPLEMENTED: Copy and Download are chrome only. Copy flashes a
- * confirmation label without writing to the clipboard, and Download has no
- * handler at all. The whole of FR-9 - clipboard write, .md download,
- * heading-derived filename, byte-identical output, the AC-9.6 fallback - is
- * unbuilt, and its test plan at docs/tests/chiri/fr-9.md has no specs
- * against it yet.
+ * FR-9: Copy and Download both call src/core/export.ts's `toExportText` on
+ * the same document string, which is what makes their output byte-identical
+ * rather than merely usually-the-same. Download's filename comes from the
+ * same module's `deriveFilename`. A clipboard write that rejects surfaces
+ * FR-12's dismissible retry treatment rather than failing silently or
+ * blocking Download, which reads the document directly and does not touch
+ * the clipboard at all.
  */
 export function TopBar() {
   const [copied, setCopied] = useState(false)
+  const [copyFailed, setCopyFailed] = useState(false)
+  const documentText = useAppStore((s) => s.documentText)
+
+  async function writeToClipboard() {
+    const text = toExportText(documentText)
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopyFailed(false)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1500)
+    } catch {
+      setCopied(false)
+      setCopyFailed(true)
+    }
+  }
 
   function handleCopy() {
-    setCopied(true)
-    window.setTimeout(() => setCopied(false), 1500)
+    void writeToClipboard()
+  }
+
+  function handleDownload() {
+    const text = toExportText(documentText)
+    const filename = deriveFilename(documentText)
+    const blob = new Blob([text], { type: 'text/markdown' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = filename
+    document.body.appendChild(anchor)
+    anchor.click()
+    document.body.removeChild(anchor)
+    URL.revokeObjectURL(url)
   }
 
   return (
@@ -47,7 +79,9 @@ export function TopBar() {
           <button
             type="button"
             tabIndex={0}
+            data-testid="copy-button"
             aria-label="Copy"
+            aria-live="polite"
             onClick={handleCopy}
             className="flex items-center gap-1.5 rounded text-[14px] text-ink opacity-70 transition-opacity duration-200 hover:opacity-100 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
@@ -58,7 +92,9 @@ export function TopBar() {
           <button
             type="button"
             tabIndex={0}
+            data-testid="download-button"
             aria-label="Download .md"
+            onClick={handleDownload}
             className="flex items-center gap-1.5 rounded text-[14px] text-ink opacity-70 transition-opacity duration-200 hover:opacity-100 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
             <Icon name="download" className="text-[12px]" />
@@ -66,6 +102,14 @@ export function TopBar() {
           </button>
         </div>
       </div>
+
+      {copyFailed && (
+        <FailureBanner
+          message="Couldn't copy to the clipboard."
+          onRetry={() => void writeToClipboard()}
+          onDismiss={() => setCopyFailed(false)}
+        />
+      )}
     </header>
   )
 }

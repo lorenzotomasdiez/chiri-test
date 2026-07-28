@@ -61,3 +61,39 @@ export function classifyFailure(error: unknown): Failure {
   if (/invalid/i.test(message)) return { kind: 'rejected', message: MESSAGES.rejected }
   return { kind: 'unknown', message: MESSAGES.unknown }
 }
+
+/**
+ * FR-6/FR-7's revision and refinement responses stream as plain text in two
+ * parts, per the request contract in `prompt.ts`'s REVISION_SYSTEM_MESSAGE:
+ * a reason line, a sentinel line, then the proposed replacement span. This
+ * is the splitter that turns that raw text back into the two parts.
+ */
+export interface RevisionSplit {
+  reason: string
+  body: string
+}
+
+/** The sentinel line the revision system message asks the model to emit between the reason and the rewritten span. */
+const REVISION_SENTINEL = '--sep--'
+
+/**
+ * Splits a revision response into its reason and its proposed span. A
+ * missing sentinel line, or an empty reason/body half either side of it, is
+ * treated as malformed (AC-12.6) rather than guessed at - the blueprint
+ * names exactly this as the failure a rushed parser swallows into the
+ * reason instead of surfacing.
+ */
+export function splitRevisionResponse(raw: string): RevisionSplit | undefined {
+  const sentinelIndex = raw.indexOf(REVISION_SENTINEL)
+  if (sentinelIndex === -1) return undefined
+
+  const reasonPart = raw.slice(0, sentinelIndex).trim()
+  const body = raw.slice(sentinelIndex + REVISION_SENTINEL.length).trim()
+  if (!body) return undefined
+
+  const reasonMatch = reasonPart.match(/^reason:\s*([\s\S]*)$/i)
+  const reason = (reasonMatch ? reasonMatch[1] : reasonPart).trim()
+  if (!reason) return undefined
+
+  return { reason, body }
+}

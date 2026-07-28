@@ -1,9 +1,24 @@
-import { useEffect, useRef } from 'react'
-import { Compartment, EditorState, Transaction } from '@codemirror/state'
+import { useEffect, useRef, useState } from 'react'
+import { Compartment, EditorSelection, EditorState, Transaction } from '@codemirror/state'
 import { EditorView, keymap, drawSelection, highlightActiveLine } from '@codemirror/view'
-import { defaultKeymap, history, historyKeymap, isolateHistory, selectAll } from '@codemirror/commands'
+import {
+  cursorDocStart,
+  defaultKeymap,
+  history,
+  historyKeymap,
+  isolateHistory,
+  selectAll,
+} from '@codemirror/commands'
 import { markdown } from '@codemirror/lang-markdown'
 import { livePreview } from '../editor/livePreview'
+import {
+  pendingRevision,
+  pendingSpanField,
+  setPendingRevision,
+  setPendingRevisionEffect,
+} from '../editor/pendingRevision'
+import type { Revision } from '../core/revision'
+import { SelectionActionBar } from './SelectionActionBar'
 
 const theme = EditorView.theme({
   '&': { fontSize: '18px', height: '100%' },
@@ -103,7 +118,14 @@ function fixCaretAfterProgrammaticInsert(tr: Transaction): Transaction {
 
 interface EditorProps {
   initialDoc?: string
-  onDocChange?: (text: string) => void
+  /** FR-4's caret restore: where the caret sits at first mount. Clamped into range. */
+  initialCaretOffset?: number
+  /**
+   * Called on any change that affects what FR-4 persists - a doc edit or a
+   * caret move alone, since a caret move sets `u.selectionSet` without
+   * setting `u.docChanged` and would otherwise never be reported.
+   */
+  onDocChange?: (text: string, caretOffset: number) => void
   /**
    * FR-1's key gate: false while blocked. The view stays mounted so the
    * document survives clear-key and revocation (AC-1.9, AC-1.10) - only its
@@ -112,7 +134,12 @@ interface EditorProps {
   editable?: boolean
 }
 
-export function Editor({ initialDoc = '', onDocChange, editable = true }: EditorProps) {
+export function Editor({
+  initialDoc = '',
+  initialCaretOffset = 0,
+  onDocChange,
+  editable = true,
+}: EditorProps) {
   const host = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const editableCompartment = useRef(new Compartment()).current
@@ -121,28 +148,44 @@ export function Editor({ initialDoc = '', onDocChange, editable = true }: Editor
     onDocChangeRef.current = onDocChange
   }, [onDocChange])
 
+  // FR-6's action bar: driven off CM6 selection state (never mouseup, so a
+  // keyboard-made selection raises it too) and hidden while a revision is
+  // pending, since at most one revision is in flight at a time (AC-6.13).
+  const [selection, setSelection] = useState<{ from: number; to: number } | null>(null)
+  const [hasPendingRevision, setHasPendingRevision] = useState(false)
+
   useEffect(() => {
     if (!host.current) return
 
     const view = new EditorView({
       state: EditorState.create({
         doc: initialDoc,
+        selection: EditorSelection.cursor(
+          Math.max(0, Math.min(initialCaretOffset, initialDoc.length)),
+        ),
         extensions: [
           history(),
           isolateProgrammaticEdits,
           drawSelection(),
           highlightActiveLine(),
-          // Playwright drives 'Control+A' verbatim regardless of platform;
-          // defaultKeymap's Mod-a only resolves to Ctrl on non-mac, so this
-          // keeps select-all reachable the same way on every OS the e2e
-          // suite runs against.
-          keymap.of([{ key: 'Ctrl-a', run: selectAll }, ...defaultKeymap, ...historyKeymap]),
+          // Playwright drives 'Control+A' and 'Control+Home' verbatim
+          // regardless of platform; defaultKeymap's Mod-a/Mod-Home only
+          // resolve to Ctrl on non-mac, so these keep select-all and
+          // jump-to-start reachable the same way on every OS the e2e suite
+          // runs against.
+          keymap.of([
+            { key: 'Ctrl-a', run: selectAll },
+            { key: 'Ctrl-Home', run: cursorDocStart },
+            ...defaultKeymap,
+            ...historyKeymap,
+          ]),
           // addKeymap: false - lang-markdown's smart Enter continuation
           // would auto-insert a second list marker on top of one the user
           // types themselves (AC-3's exact-source guarantee: the document
           // is always exactly what was typed).
           markdown({ addKeymap: false }),
           livePreview(),
+          pendingRevision(),
           EditorView.lineWrapping,
           theme,
           editableCompartment.of([
@@ -150,7 +193,16 @@ export function Editor({ initialDoc = '', onDocChange, editable = true }: Editor
             EditorState.readOnly.of(!editable),
           ]),
           EditorView.updateListener.of((u) => {
-            if (u.docChanged) onDocChangeRef.current?.(u.state.doc.toString())
+            if (u.docChanged || u.selectionSet) {
+              onDocChangeRef.current?.(u.state.doc.toString(), u.state.selection.main.head)
+            }
+            if (u.selectionSet || u.docChanged) {
+              const main = u.state.selection.main
+              setSelection(main.empty ? null : { from: main.from, to: main.to })
+            }
+            if (u.docChanged || u.transactions.some((tr) => tr.effects.length > 0)) {
+              setHasPendingRevision(u.state.field(pendingSpanField, false) != null)
+            }
           }),
         ],
       }),
@@ -162,15 +214,41 @@ export function Editor({ initialDoc = '', onDocChange, editable = true }: Editor
     })
     viewRef.current = view
 
+    // FR-4's caret restore is only meaningful if the editor also has focus
+    // to show it in - a caret position with nothing focused is invisible.
+    // Skipped while blocked (AC-1's focus trap keeps focus on the key gate
+    // instead).
+    if (editable) view.focus()
+
     // The document is the Markdown string itself, so tests assert against it
     // directly rather than scraping the DOM. This is also how the ghost-text
     // spec will prove unaccepted output is not in the document.
     ;(window as unknown as { __editor?: EditorView }).__editor = view
 
+    // The e2e specs drive the pending-span StateField and the accept path
+    // directly, so these are published the same way window.__editor is
+    // rather than adding a parallel test-only handle.
+    const windowHandle = window as unknown as {
+      pendingSpanField?: typeof pendingSpanField
+      setPendingRevision?: typeof setPendingRevision
+      acceptRevision?: (revision: Revision) => void
+    }
+    windowHandle.pendingSpanField = pendingSpanField
+    windowHandle.setPendingRevision = setPendingRevision
+    windowHandle.acceptRevision = (revision: Revision) => {
+      view.dispatch({
+        changes: { from: revision.from, to: revision.to, insert: revision.proposed },
+        effects: setPendingRevisionEffect.of(null),
+      })
+    }
+
     return () => {
       view.destroy()
       viewRef.current = null
       delete (window as unknown as { __editor?: EditorView }).__editor
+      delete windowHandle.pendingSpanField
+      delete windowHandle.setPendingRevision
+      delete windowHandle.acceptRevision
     }
     // Mount-once on purpose: rebuilding the view on every render would throw
     // away undo history, which AC-3.3 depends on.
@@ -189,15 +267,29 @@ export function Editor({ initialDoc = '', onDocChange, editable = true }: Editor
   }, [editable, editableCompartment])
 
   return (
-    <div
-      ref={host}
-      data-testid="editor"
-      className="h-full w-full"
-      // Blocked by the key gate: contenteditable is toggled off via the
-      // editable/readOnly compartment above, which already removes the
-      // surface from focus and the tab order (a non-editable, non-tabindex
-      // div is not natively focusable) without hiding it from hit-testing -
-      // AC-1's focus-trap requirement without breaking real pointer input.
-    />
+    <>
+      <div
+        ref={host}
+        data-testid="editor"
+        className="h-full w-full"
+        // Blocked by the key gate: contenteditable is toggled off via the
+        // editable/readOnly compartment above, which already removes the
+        // surface from focus and the tab order (a non-editable, non-tabindex
+        // div is not natively focusable) without hiding it from hit-testing -
+        // AC-1's focus-trap requirement without breaking real pointer input.
+        //
+        // A click here that lands outside the actual rendered lines (blank
+        // space below short content) can otherwise focus .cm-scroller
+        // instead of .cm-content when the view was already focused before
+        // the click - FR-4's autofocus-on-restore makes that the common
+        // case on reload. Re-asserting focus on the view itself keeps the
+        // click landing where CC-DOC's "click blank space" guarantee says
+        // it should.
+        onClick={() => viewRef.current?.focus()}
+      />
+      {selection && !hasPendingRevision && viewRef.current && (
+        <SelectionActionBar view={viewRef.current} from={selection.from} to={selection.to} />
+      )}
+    </>
   )
 }
