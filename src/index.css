@@ -48,6 +48,30 @@ body {
   border-radius: 9999px;
 }
 
+/* CC-MOTION.1: the product's signature animation, and the whole of FR-2's
+   expressive budget. Fade 0 to 1 with a scale from 0.98, once, then hold -
+   `forwards` is what makes it hold rather than snap back. */
+@keyframes splash-in {
+  from { opacity: 0; transform: scale(0.98); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.splash-mark {
+  animation: splash-in 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* CC-MOTION.9: under reduced motion this becomes an instant state change, not
+   a fast one. The global rule below collapses the duration, but that would
+   still start the mark at opacity 0, so the mark is given its end state
+   outright. */
+@media (prefers-reduced-motion: reduce) {
+  .splash-mark {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

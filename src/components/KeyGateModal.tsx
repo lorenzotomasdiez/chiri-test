@@ -59,7 +59,11 @@ export function KeyGateModal() {
       >
         {/* CC-GATE.3: three regions, 48px apart. */}
         <div className="space-y-12">
-          <header className="space-y-3">
+          {/* A plain div, not <header>: outside sectioning content a <header>
+              carries the implicit `banner` landmark, which would put a second
+              banner on the page whenever the gate re-appears over a live shell
+              (AC-12.4), and contradicts CC-PRE.1's "no top bar on the gate". */}
+          <div className="space-y-3">
             <h2
               id="key-gate-heading"
               className="text-[30px] leading-tight font-semibold tracking-tight text-ink"
@@ -70,7 +74,7 @@ export function KeyGateModal() {
             <p className="text-[15px] leading-relaxed text-muted">
               Your key is stored only on this machine and sent only to OpenRouter.
             </p>
-          </header>
+          </div>
 
           <div className="space-y-6">
             <div>
@@ -101,7 +105,7 @@ export function KeyGateModal() {
               type="submit"
               tabIndex={0}
               disabled={isValidating}
-              className="h-12 w-full rounded bg-ink text-[14px] font-medium tracking-tight text-paper transition-opacity duration-200 hover:opacity-90 active:opacity-75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-50"
+              className="h-12 w-full rounded bg-ink text-[14px] font-medium tracking-tight text-white transition-opacity duration-200 hover:opacity-90 active:opacity-75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-50"
             >
               Connect
             </button>
@@ -159,7 +163,7 @@ export function KeyGateModal() {
           {/* KEEP.3: the only way out of a stored bad key. Shown when there is
               something to clear, so it is never a dead control. */}
           {hasStoredKey && (
-            <footer className="pt-4 text-center">
+            <div className="pt-4 text-center">
               <button
                 type="button"
                 tabIndex={0}
@@ -168,7 +172,7 @@ export function KeyGateModal() {
               >
                 Clear stored key
               </button>
-            </footer>
+            </div>
           )}
         </div>
       </form>
