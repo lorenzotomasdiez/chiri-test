@@ -5,14 +5,17 @@ import { ModelSelector } from './ModelSelector'
 
 /**
  * The fixed 48px top bar (CC-NAV): wordmark, Predictions toggle, model
- * selector, a divider, then Copy and Download. Every icon here uses the
- * text variant - the bar's accessible surface carries zero <svg> elements
- * by design (CC-BRAND.2's "no mark next to the wordmark" extends to the
- * whole bar in the anatomy test).
+ * selector, a divider, then Copy and Download. Icons draw from the local
+ * sprite; CC-BRAND.2 keeps a mark away from the wordmark, which is a rule
+ * about the brand and not about the action buttons, where CC-NAV.7 requires
+ * icon plus label.
  *
- * Copy and Download do not perform the real clipboard/download behaviour
- * (FR-9) - that is out of scope for this run. Copy shows a transient
- * confirmation label only.
+ * NOT IMPLEMENTED: Copy and Download are chrome only. Copy flashes a
+ * confirmation label without writing to the clipboard, and Download has no
+ * handler at all. The whole of FR-9 - clipboard write, .md download,
+ * heading-derived filename, byte-identical output, the AC-9.6 fallback - is
+ * unbuilt, and its test plan at docs/tests/chiri/fr-9.md has no specs
+ * against it yet.
  */
 export function TopBar() {
   const [copied, setCopied] = useState(false)

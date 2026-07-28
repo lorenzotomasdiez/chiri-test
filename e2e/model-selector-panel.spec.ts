@@ -42,8 +42,14 @@ test('T-CC-MODEL-5: Model dropdown panel anatomy and selection (CC-MODEL.1, CC-M
   // Top edge at y=48
   expect(panelBox!.y).toBe(48)
 
-  // Right edge 24px from viewport right (x + width = 1256 in 1280px viewport)
-  expect(panelBox!.x + panelBox!.width).toBe(1256)
+  // Right edge aligned to the trigger's right edge, not to the viewport
+  // gutter: with CC-NAV.7's full "Copy" and "Download .md" labels the trigger
+  // no longer sits near the gutter, and a gutter-anchored panel would open
+  // ~240px away from the control that raised it (CC-MODEL.5 as amended).
+  const triggerBox = await trigger.boundingBox()
+  expect(Math.round(panelBox!.x + panelBox!.width)).toBe(Math.round(triggerBox!.x + triggerBox!.width))
+  // ...and never overhangs the 24px gutter.
+  expect(panelBox!.x + panelBox!.width).toBeLessThanOrEqual(1280 - 24)
 
   // Verify styling: white background and border-radius
   const panelBgColor = await panel.evaluate((el) =>

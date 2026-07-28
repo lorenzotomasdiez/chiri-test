@@ -15,6 +15,7 @@ export function ModelSelector() {
   const setSelectedModelId = useAppStore((s) => s.setSelectedModelId)
   const [isOpen, setIsOpen] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(0)
+  const [panelRight, setPanelRight] = useState(24)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -23,6 +24,10 @@ export function ModelSelector() {
 
   function open() {
     setHighlightedIndex(selectedIndex === -1 ? 0 : selectedIndex)
+    // Measured at open time: the trigger's label is the selected model name,
+    // so its width changes with the selection and cannot be a constant.
+    const rect = triggerRef.current?.getBoundingClientRect()
+    if (rect) setPanelRight(Math.max(24, window.innerWidth - rect.right))
     setIsOpen(true)
   }
 
@@ -95,9 +100,16 @@ export function ModelSelector() {
           data-testid="model-selector-panel"
           role="listbox"
           style={{
+            // Flush to the bottom of the 48px bar, right-aligned to the
+            // trigger rather than to the viewport gutter. CC-MODEL.5's
+            // `right: 24px` was measured off a mockup whose Copy and Download
+            // were icon-only - the rendering CC-NAV.7 rejects. Restoring the
+            // full labels widens that cluster by ~200px and pushes the trigger
+            // left, so a viewport-anchored panel detaches from the control
+            // that opened it. Clamped to a 24px gutter at narrow widths.
             position: 'fixed',
             top: 48,
-            right: 24,
+            right: panelRight,
             width: 288,
             backgroundColor: '#FFFFFF',
             borderRadius: 8,
