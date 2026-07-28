@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { seedValidatedKey } from './seed'
 import type { EditorView } from '@codemirror/view'
 
 /** The document as CodeMirror holds it - the canonical Markdown, not the DOM. */
@@ -9,6 +10,7 @@ async function docText(page: import('@playwright/test').Page) {
 }
 
 test.beforeEach(async ({ page }) => {
+  await seedValidatedKey(page)
   await page.goto('/')
   await page.waitForSelector('[data-testid="editor"] .cm-content')
 })

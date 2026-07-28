@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test'
+import { seedValidatedKey } from './seed'
 
 test.beforeEach(async ({ page }) => {
+  await seedValidatedKey(page)
   await page.goto('/')
   await page.waitForSelector('[data-testid="editor"] .cm-content')
 })

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { EditorState } from '@codemirror/state'
+import { Compartment, EditorState } from '@codemirror/state'
 import { EditorView, keymap, drawSelection, highlightActiveLine } from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { markdown } from '@codemirror/lang-markdown'
@@ -29,10 +29,18 @@ const theme = EditorView.theme({
 interface EditorProps {
   initialDoc?: string
   onDocChange?: (text: string) => void
+  /**
+   * FR-1's key gate: false while blocked. The view stays mounted so the
+   * document survives clear-key and revocation (AC-1.9, AC-1.10) - only its
+   * editability is toggled, via a compartment rather than a remount.
+   */
+  editable?: boolean
 }
 
-export function Editor({ initialDoc = '', onDocChange }: EditorProps) {
+export function Editor({ initialDoc = '', onDocChange, editable = true }: EditorProps) {
   const host = useRef<HTMLDivElement>(null)
+  const viewRef = useRef<EditorView | null>(null)
+  const editableCompartment = useRef(new Compartment()).current
   const onDocChangeRef = useRef(onDocChange)
   useEffect(() => {
     onDocChangeRef.current = onDocChange
@@ -52,6 +60,10 @@ export function Editor({ initialDoc = '', onDocChange }: EditorProps) {
           markdown(),
           EditorView.lineWrapping,
           theme,
+          editableCompartment.of([
+            EditorView.editable.of(editable),
+            EditorState.readOnly.of(!editable),
+          ]),
           EditorView.updateListener.of((u) => {
             if (u.docChanged) onDocChangeRef.current?.(u.state.doc.toString())
           }),
@@ -59,6 +71,7 @@ export function Editor({ initialDoc = '', onDocChange }: EditorProps) {
       }),
       parent: host.current,
     })
+    viewRef.current = view
 
     // The document is the Markdown string itself, so tests assert against it
     // directly rather than scraping the DOM. This is also how the ghost-text
@@ -67,11 +80,35 @@ export function Editor({ initialDoc = '', onDocChange }: EditorProps) {
 
     return () => {
       view.destroy()
+      viewRef.current = null
       delete (window as unknown as { __editor?: EditorView }).__editor
     }
     // Mount-once on purpose: rebuilding the view on every render would throw
     // away undo history, which AC-3.3 depends on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialDoc])
 
-  return <div ref={host} data-testid="editor" className="h-full w-full" />
+  useEffect(() => {
+    const view = viewRef.current
+    if (!view) return
+    view.dispatch({
+      effects: editableCompartment.reconfigure([
+        EditorView.editable.of(editable),
+        EditorState.readOnly.of(!editable),
+      ]),
+    })
+  }, [editable, editableCompartment])
+
+  return (
+    <div
+      ref={host}
+      data-testid="editor"
+      className="h-full w-full"
+      // Blocked by the key gate: contenteditable is toggled off via the
+      // editable/readOnly compartment above, which already removes the
+      // surface from focus and the tab order (a non-editable, non-tabindex
+      // div is not natively focusable) without hiding it from hit-testing -
+      // AC-1's focus-trap requirement without breaking real pointer input.
+    />
+  )
 }

@@ -22,7 +22,12 @@ test('T-FR-1-1: First launch with no stored key blocks the editor', async ({ pag
   await expect(page.getByTestId('key-gate-modal')).toBeVisible()
 
   // Clicking the CodeMirror surface leaves activeElement outside the editor.
-  await page.locator('.cm-content').click()
+  // The click is forced past the gate card that now covers the centre of the
+  // column: the point of AC-1.1 is that the editor itself refuses input
+  // because it is inert, not that an overlay happens to be in the way. A click
+  // delivered straight to the surface is the stronger assertion, and it is
+  // what the modal's pointer-events-none backdrop is designed to allow.
+  await page.locator('.cm-content').click({ force: true })
   const activeElement = await page.evaluate(() => {
     const active = document.activeElement
     if (!active) return 'null'
