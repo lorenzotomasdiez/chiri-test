@@ -7,7 +7,10 @@
 ## The pure core
 
 Five modules under `src/core/`, each a plain TypeScript file with zero DOM and zero network imports.
-An eslint `no-restricted-imports` rule blocks `react`, `@codemirror/*`, and DOM globals from that directory so the purity is enforced rather than hoped for.
+An oxlint 1.76.0 `no-restricted-imports` rule, configured in `.oxlintrc.json` as an override scoped to `src/core/**/*.ts`, blocks `react`, `react-dom`, `react/*`, `@codemirror/*`, `zustand`, `idb-keyval`, and `@floating-ui/*` from that directory so the purity is enforced rather than hoped for.
+oxlint rather than eslint because it is what the current `npm create vite@latest --template react-ts` scaffold ships, and it accepts the same rule with eslint-compatible configuration.
+The rule was verified to actually fire: a deliberate `import { useState } from 'react'` planted in `src/core/` produced `error eslint(no-restricted-imports)` with the configured message, and was then removed.
+A purity rule that silently does not fire is worse than no rule, so re-run that check if the config is ever restructured.
 
 - `src/core/schedule.ts` - the scheduler: settle debounce, single-flight continuation, token bucket, caret-generation staleness guard. Takes `{ now, setTimeout }` and a transport function as constructor arguments.
 - `src/core/continuation.ts` - eligibility (caret at end of paragraph or list item, not in a fenced code block, not mid-word, not inside a selection, not inside a pending revision span) computed from a plain `{ text, cursorPos, selection }` shape, plus two-sentence truncation, preamble and quote stripping, and duplicate-tail suppression.
@@ -35,12 +38,19 @@ Construct the scheduler with `settleMs = 600` and a transport spy returning a ne
 Call `scheduler.onInput({ docVersion: 1, cursor: 10 })`, advance 600ms, assert the transport was called once.
 Call `scheduler.onInput({ docVersion: 2, cursor: 11 })`, assert the first call's `signal.aborted === true` immediately, before the new settle elapses.
 Advance 600ms and assert the transport was called exactly twice, with only the second signal unaborted.
-That is AC-10.2, and it fails on day one because `src/core/schedule.ts` does not exist.
+That is AC-10.2, and it is written and passing.
+It was written before `src/core/schedule.ts` existed and confirmed failing for the right reason first.
+Five more tests sit beside it in the same file, covering AC-10.1 (no request while input keeps arriving), AC-10.4 (the per-minute ceiling, silent, with sliding-window refill), AC-10.3 and AC-5.5 (a result whose caret generation is stale is discarded, driven through a separate `onCaretMove()` entry point rather than through `onInput`, which would schedule a fresh request that delivers on its own and mask the failure), the current-result delivery path, and the scheduler-level off switch.
+That is the scheduler module satisfying six assertions, not FR-10 being complete: nothing wires the scheduler to the editor, there is no transport behind it, and AC-10.5's persistence across reloads is unimplemented.
 
 ## What needs real infrastructure
 
 Seven Playwright specs against `npm run dev`, with `page.route` intercepting OpenRouter.
 This is the complete browser-spec inventory, and it is what section 7 of the blueprint points at when it names an earliest catch.
+None of the seven is written yet.
+What exists is a separate thing: `e2e/editor.spec.ts` holds 4 scaffold-verification tests - the surface mounts and accepts typing, the onboarding cue shows only while the document is empty (AC-11.2, AC-11.3), undo and redo work over a typed run (AC-3.3, AC-3.4), and a screenshot of the writing surface - run across chromium, firefox, and webkit, which is where the 12 passing executions come from.
+Those 4 prove the harness works end to end.
+They do not cover any of the seven below, and the count below stays at seven.
 
 1. **Ghost text.** Type a paragraph, wait past settle, assert the ghost widget is in the DOM and *not* in `view.state.doc.toString()` read via `page.evaluate`. Press the accept key, assert it is now in the document. Press Ctrl/Cmd+Z once and assert it is entirely gone.
 2. **Reload durability.** Type, wait 2s, reload, assert identical content and caret offset. This one genuinely needs real IndexedDB and a real page lifecycle.

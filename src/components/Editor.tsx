@@ -5,15 +5,17 @@ import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { markdown } from '@codemirror/lang-markdown'
 
 const theme = EditorView.theme({
-  '&': { fontSize: '17px', height: '100%' },
+  '&': { fontSize: '18px', height: '100%' },
   '&.cm-focused': { outline: 'none' },
   '.cm-content': {
-    fontFamily: 'ui-serif, Georgia, serif',
-    lineHeight: '1.7',
+    fontFamily: 'Inter, system-ui, -apple-system, Helvetica, Arial',
+    lineHeight: '1.75',
+    color: '#1D1D1F',
     padding: '2rem 0 40vh',
-    caretColor: '#08060d',
+    caretColor: '#1D1D1F',
+    WebkitFontSmoothing: 'antialiased',
   },
-  '.cm-line': { padding: '0' },
+  '.cm-line': { padding: '0', color: '#1D1D1F' },
   '.cm-activeLine': { backgroundColor: 'transparent' },
 })
 
@@ -55,7 +57,6 @@ export function Editor({ initialDoc = '', onDocChange }: EditorProps) {
     // directly rather than scraping the DOM. This is also how the ghost-text
     // spec will prove unaccepted output is not in the document.
     ;(window as unknown as { __editor?: EditorView }).__editor = view
-    view.focus()
 
     return () => {
       view.destroy()

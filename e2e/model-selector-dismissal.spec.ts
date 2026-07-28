@@ -1,0 +1,58 @@
+import { test, expect } from '@playwright/test'
+
+test.beforeEach(async ({ page }) => {
+  await page.goto('/')
+  await page.waitForSelector('[data-testid="editor"] .cm-content')
+})
+
+test('T-CC-MODEL-12: Dropdown dismisses on Escape and outside click, returns focus to the trigger, and moves by arrow keys (CC-MODEL.12, CC-PANEL.5, CC-MODEL.13)', async ({
+  page,
+}) => {
+  // Open the model selector by clicking the trigger
+  const trigger = page.locator('button:has-text("GPT-4o mini")')
+  await trigger.click()
+
+  // Panel should be visible
+  const panel = page.locator('div[role="listbox"]')
+  await expect(panel).toBeVisible()
+
+  // Test Escape key dismisses and returns focus to trigger
+  await page.keyboard.press('Escape')
+  await expect(panel).not.toBeInViewport()
+  expect(await page.evaluate(() => document.activeElement?.textContent)).toContain('GPT-4o mini')
+
+  // Open the panel again
+  await trigger.click()
+  await expect(panel).toBeVisible()
+
+  // Test outside click dismisses without selecting
+  await page.click('[data-testid="editor"]', { position: { x: 200, y: 700 } })
+  await expect(panel).not.toBeInViewport()
+  expect(await trigger.textContent()).toContain('GPT-4o mini')
+
+  // Open the panel a third time with keyboard
+  await trigger.focus()
+  await page.keyboard.press('Enter')
+  await expect(panel).toBeVisible()
+
+  // Press ArrowDown twice to highlight the third option (GPT-4.1)
+  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('ArrowDown')
+
+  // Verify the third row is highlighted
+  const options = page.locator('div[role="option"]')
+  const thirdOption = options.nth(2)
+  await expect(thirdOption).toHaveAttribute('aria-selected', 'true')
+
+  // Press Enter to select
+  await page.keyboard.press('Enter')
+
+  // Panel should be closed
+  await expect(panel).not.toBeInViewport()
+
+  // Focus should return to trigger
+  expect(await page.evaluate(() => document.activeElement?.textContent)).toContain('GPT-4.1')
+
+  // Trigger text should be updated to GPT-4.1
+  expect(await trigger.textContent()).toContain('GPT-4.1')
+})
