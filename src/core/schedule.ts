@@ -1,0 +1,148 @@
+/**
+ * Continuation request discipline - FR-10 in full.
+ *
+ * Pure by construction: no DOM, no fetch, no CodeMirror. The clock and the
+ * transport are injected, so every debounce, ceiling, and staleness assertion
+ * runs in virtual time with nothing running.
+ */
+
+export interface InputSignal {
+  /** Monotonic document version. Only used to tell one edit from the next. */
+  docVersion: number
+  /** Caret offset the request would be made for. */
+  cursor: number
+}
+
+export type Transport = (
+  req: InputSignal,
+  signal: AbortSignal,
+) => AsyncIterable<string> | Promise<AsyncIterable<string>>
+
+export interface SchedulerOptions {
+  /** How long input must be quiet before we speak to the model. */
+  settleMs: number
+  transport: Transport
+  /** Ceiling on requests in any sliding minute. Exceeding it is silent (AC-10.4). */
+  maxPerMinute?: number
+  /** Continuation is on by default and can be turned off (AC-10.5). */
+  enabled?: boolean
+  /** Called once per request with the full accumulated text, if still current. */
+  onResult?: (text: string) => void
+  /** Called per streamed chunk, so first paint can happen before completion (NFR-1). */
+  onChunk?: (textSoFar: string) => void
+  /** Injected for tests; defaults to the real ones. */
+  now?: () => number
+  setTimeout?: (fn: () => void, ms: number) => ReturnType<typeof setTimeout>
+  clearTimeout?: (handle: ReturnType<typeof setTimeout>) => void
+}
+
+export class Scheduler {
+  private readonly opts: Required<
+    Pick<SchedulerOptions, 'settleMs' | 'transport' | 'maxPerMinute' | 'now' | 'setTimeout' | 'clearTimeout'>
+  > &
+    SchedulerOptions
+
+  private enabled: boolean
+  private settleHandle: ReturnType<typeof setTimeout> | null = null
+  private inFlight: AbortController | null = null
+  /** Bumped by any input or caret move. A result whose generation is stale is dropped. */
+  private generation = 0
+  private issuedAt: number[] = []
+
+  constructor(options: SchedulerOptions) {
+    this.opts = {
+      maxPerMinute: Number.POSITIVE_INFINITY,
+      now: () => Date.now(),
+      setTimeout: (fn, ms) => setTimeout(fn, ms),
+      clearTimeout: (h) => clearTimeout(h),
+      ...options,
+    }
+    this.enabled = options.enabled ?? true
+  }
+
+  /** The user typed. Cancel anything in flight and restart the settle window. */
+  onInput(signal: InputSignal): void {
+    this.invalidate()
+    if (!this.enabled) return
+
+    const generation = this.generation
+    this.settleHandle = this.opts.setTimeout(() => {
+      this.settleHandle = null
+      this.issue(signal, generation)
+    }, this.opts.settleMs)
+  }
+
+  /**
+   * The caret moved without an edit. Anything in flight was computed for a
+   * position the user has left, so it is cancelled and its result discarded -
+   * a suggestion for somewhere else is worse than no suggestion (AC-10.3).
+   */
+  onCaretMove(): void {
+    this.invalidate()
+  }
+
+  setEnabled(enabled: boolean): void {
+    this.enabled = enabled
+    if (!enabled) this.invalidate()
+  }
+
+  /** Cancels in-flight work and pending settles without scheduling anything. */
+  dispose(): void {
+    this.invalidate()
+  }
+
+  private invalidate(): void {
+    this.generation++
+    if (this.settleHandle !== null) {
+      this.opts.clearTimeout(this.settleHandle)
+      this.settleHandle = null
+    }
+    if (this.inFlight) {
+      this.inFlight.abort()
+      this.inFlight = null
+    }
+  }
+
+  private withinCeiling(): boolean {
+    const cutoff = this.opts.now() - 60_000
+    this.issuedAt = this.issuedAt.filter((t) => t > cutoff)
+    return this.issuedAt.length < this.opts.maxPerMinute
+  }
+
+  private issue(signal: InputSignal, generation: number): void {
+    if (generation !== this.generation) return
+    // Dropping a prediction is silent: a warning about a request the user never
+    // asked for is noise (FR-10).
+    if (!this.withinCeiling()) return
+
+    this.issuedAt.push(this.opts.now())
+    const controller = new AbortController()
+    this.inFlight = controller
+
+    void this.consume(signal, controller, generation)
+  }
+
+  private async consume(
+    signal: InputSignal,
+    controller: AbortController,
+    generation: number,
+  ): Promise<void> {
+    let text = ''
+    try {
+      const stream = await this.opts.transport(signal, controller.signal)
+      for await (const chunk of stream) {
+        if (controller.signal.aborted || generation !== this.generation) return
+        text += chunk
+        this.opts.onChunk?.(text)
+      }
+    } catch {
+      // Continuation failures are silent by design (FR-12, AC-12.1).
+      return
+    } finally {
+      if (this.inFlight === controller) this.inFlight = null
+    }
+
+    if (controller.signal.aborted || generation !== this.generation) return
+    if (text.length > 0) this.opts.onResult?.(text)
+  }
+}

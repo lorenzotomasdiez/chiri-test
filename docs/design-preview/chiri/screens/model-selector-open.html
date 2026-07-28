@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chiri — Writing Surface</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Public+Sans:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                "tertiary-container": "#211c1b",
+                "on-tertiary": "#ffffff",
+                "tertiary-fixed-dim": "#cec4c2",
+                "surface-container-high": "#ebe7e7",
+                "on-surface": "#1c1b1b",
+                "primary-fixed": "#e4e2e4",
+                "inverse-on-surface": "#f4f0ef",
+                "surface-dim": "#ddd9d9",
+                "on-primary-container": "#868587",
+                "on-tertiary-container": "#8c8382",
+                "tertiary": "#040302",
+                "on-error": "#ffffff",
+                "outline": "#77767b",
+                "tertiary-fixed": "#ebe0de",
+                "surface-tint": "#5f5e60",
+                "secondary-container": "#e2dfdf",
+                "on-secondary-container": "#646263",
+                "on-primary": "#ffffff",
+                "error-container": "#ffdad6",
+                "surface-container-low": "#f7f3f2",
+                "on-secondary-fixed-variant": "#474647",
+                "primary-container": "#1d1d1f",
+                "secondary-fixed": "#e5e2e2",
+                "surface-container-highest": "#e5e2e1",
+                "on-secondary": "#ffffff",
+                "on-surface-variant": "#46464a",
+                "background": "#fdf8f8",
+                "surface-container-lowest": "#ffffff",
+                "inverse-primary": "#c8c6c8",
+                "surface-bright": "#fdf8f8",
+                "primary-fixed-dim": "#c8c6c8",
+                "on-secondary-fixed": "#1c1b1c",
+                "on-background": "#1c1b1b",
+                "surface": "#fdf8f8",
+                "on-error-container": "#93000a",
+                "inverse-surface": "#313030",
+                "outline-variant": "#c7c6ca",
+                "surface-variant": "#e5e2e1",
+                "on-primary-fixed": "#1b1b1d",
+                "surface-container": "#f1edec",
+                "secondary": "#5f5e5f",
+                "primary": "#030304",
+                "error": "#ba1a1a",
+                "secondary-fixed-dim": "#c9c6c6",
+                "on-tertiary-fixed": "#1f1a19",
+                "on-tertiary-fixed-variant": "#4c4544",
+                "on-primary-fixed-variant": "#474649"
+            },
+            "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+            },
+            "fontFamily": {
+                "headline": ["Inter", "sans-serif"],
+                "display": ["Inter", "sans-serif"],
+                "body": ["Inter", "sans-serif"],
+                "label": ["Public Sans", "sans-serif"]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;
+            font-size: 18px;
+        }
+        
+        [contenteditable]:focus {
+            outline: none;
+        }
+
+        /* Paper-like typography focus */
+        .writing-surface h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 2rem;
+            color: #1d1d1f;
+        }
+
+        .writing-surface p {
+            font-size: 1.125rem;
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+            color: #1d1d1f;
+        }
+
+        /* Subtle scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e5e2e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #c7c6ca; }
+
+        /* Custom model selector positioning */
+        .model-dropdown-container {
+            position: fixed;
+            top: 48px; /* Header height */
+            right: 24px;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body class="bg-background font-body text-on-surface antialiased">
+<!-- Top Navigation Bar (Shared Component Anchor) -->
+<header class="fixed top-0 left-0 w-full h-12 bg-surface flex justify-between items-center px-6 z-40 border-b border-outline-variant/30">
+<!-- Brand Wordmark -->
+<div class="text-lg font-bold tracking-tight text-primary">Chiri</div>
+<!-- Utility Bar -->
+<div class="flex items-center gap-6">
+<!-- Predictions Toggle -->
+<div class="flex items-center gap-3">
+<span class="text-xs font-medium text-on-surface-variant/60 uppercase tracking-widest font-label">Predictions</span>
+<button class="relative inline-flex h-4 w-8 items-center rounded-full bg-primary-container transition-colors focus:outline-none">
+<span class="inline-block h-2.5 w-2.5 translate-x-4.5 transform rounded-full bg-surface transition-transform translate-x-4.5 ml-1"></span>
+</button>
+</div>
+<!-- Model Selector Trigger -->
+<button class="flex items-center gap-1.5 px-2 py-1 transition-colors duration-150 hover:bg-surface-container-low rounded group" id="model-selector-btn">
+<span class="text-sm font-medium text-on-surface-variant">GPT-4o mini</span>
+<span class="material-symbols-outlined text-on-surface-variant/60 group-hover:text-primary">expand_more</span>
+</button>
+<!-- Actions -->
+<div class="flex items-center gap-1 border-l border-outline-variant/30 pl-4">
+<button class="p-1.5 hover:bg-surface-container-low rounded text-on-surface-variant transition-colors" title="Copy text">
+<span class="material-symbols-outlined">content_copy</span>
+</button>
+<button class="p-1.5 hover:bg-surface-container-low rounded text-on-surface-variant transition-colors" title="Download as Markdown">
+<span class="material-symbols-outlined">download</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Model Selector Dropdown (Active/Open State) -->
+<div class="model-dropdown-container w-72 bg-surface border border-outline-variant/30 rounded-lg shadow-sm overflow-hidden" id="model-dropdown">
+<div class="py-1">
+<!-- Option 1: Selected -->
+<button class="w-full text-left px-4 py-3 flex justify-between items-start hover:bg-surface-container-low transition-colors group bg-surface-container-low">
+<div>
+<p class="text-sm font-medium text-on-surface">GPT-4o mini <span class="text-[10px] text-on-surface-variant/60 ml-2 font-normal">— fast, low cost</span></p>
+<p class="text-[11px] text-on-surface-variant/50 mt-0.5">openai/gpt-4o-mini</p>
+</div>
+<span class="material-symbols-outlined text-primary scale-90">check</span>
+</button>
+<!-- Option 2 -->
+<button class="w-full text-left px-4 py-3 hover:bg-surface-container-low transition-colors group border-t border-outline-variant/10">
+<div>
+<p class="text-sm font-medium text-on-surface">Claude 3.5 Sonnet <span class="text-[10px] text-on-surface-variant/60 ml-2 font-normal">— stronger reasoning, slower</span></p>
+<p class="text-[11px] text-on-surface-variant/50 mt-0.5">anthropic/claude-3.5-sonnet</p>
+</div>
+</button>
+<!-- Option 3 -->
+<button class="w-full text-left px-4 py-3 hover:bg-surface-container-low transition-colors group border-t border-outline-variant/10">
+<div>
+<p class="text-sm font-medium text-on-surface">Gemini 1.5 Pro <span class="text-[10px] text-on-surface-variant/60 ml-2 font-normal">— large context</span></p>
+<p class="text-[11px] text-on-surface-variant/50 mt-0.5">google/gemini-1.5-pro</p>
+</div>
+</button>
+</div>
+</div>
+<!-- Main Content Canvas -->
+<main class="min-h-screen flex justify-center">
+<!-- Writing Column with Focus State Dimming -->
+<div class="w-full max-w-2xl pt-32 pb-48 opacity-50 transition-opacity duration-700 ease-in-out hover:opacity-100 focus-within:opacity-100" id="writing-container">
+<div class="writing-surface" contenteditable="true" spellcheck="false">
+<h1>Why Remote Teams Struggle with Async Communication</h1>
+<p>Despite years of "remote-first" advocacy, the majority of distributed teams are still essentially operating as synchronous offices that happen to have longer commutes to the kitchen. The psychological safety net of a real-time response has become a crutch that prevents true asynchronous maturity.</p>
+<p>The most common failure point is the 'Daily Standup' reimagined as a Zoom call. In a team spanning eight timezones, a synchronous standup isn't a culture-builder; it's a tax on the fringes. One person is drinking their first coffee while another is trying to finish their day, resulting in a low-energy exchange that could have been a three-sentence status update.</p>
+<p>Then there is the Slack trap. We replaced the "tap on the shoulder" with a notification dot that demands the same urgency. When every question is treated as a priority, deep work becomes impossible. The transition to async isn't about the tools we use, but about a fundamental shift in trust: trusting that your teammate will provide a comprehensive answer within four hours, so you don't need it in four seconds.</p>
+<p>True async requires a commitment to writing as a core competency. If you cannot articulate a problem clearly in a document, you will default to a meeting to "talk through it." This is where most teams stall—they prioritize the comfort of speech over the clarity of the written word.</p>
+</div>
+</div>
+</main>
+<!-- Floating Atmosphere Script -->
+<script>
+        // Micro-interaction: Focus effect
+        const container = document.getElementById('writing-container');
+        const writingSurface = document.querySelector('.writing-surface');
+        const dropdown = document.getElementById('model-dropdown');
+        const dropdownBtn = document.getElementById('model-selector-btn');
+
+        // Logic for auto-dimming/focus
+        writingSurface.addEventListener('focus', () => {
+            container.classList.remove('opacity-50');
+            container.classList.add('opacity-100');
+            // Close dropdown if it was open during focus
+            dropdown.classList.add('hidden');
+        });
+
+        writingSurface.addEventListener('blur', () => {
+            // Keep it fully opaque if text is selected or active
+            // For this UI demo, we'll keep the prompt's requested 50% state 
+            // but let hover restore it.
+        });
+
+        // Simple Toggle for Dropdown
+        dropdownBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!dropdown.contains(e.target) && e.target !== dropdownBtn) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        // Handle prediction toggle visual only
+        const toggleBtn = document.querySelector('button.relative');
+        toggleBtn.addEventListener('click', () => {
+            const circle = toggleBtn.querySelector('span');
+            if (circle.classList.contains('translate-x-4.5')) {
+                circle.classList.remove('translate-x-4.5');
+                circle.classList.add('translate-x-0.5');
+                toggleBtn.classList.replace('bg-primary-container', 'bg-surface-container-highest');
+            } else {
+                circle.classList.remove('translate-x-0.5');
+                circle.classList.add('translate-x-4.5');
+                toggleBtn.classList.replace('bg-surface-container-highest', 'bg-primary-container');
+            }
+        });
+    </script>
+</body></html>

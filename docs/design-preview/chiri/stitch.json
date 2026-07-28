@@ -1,0 +1,111 @@
+{
+  "slug": "chiri",
+  "prd": "docs/prd/chiri/index.md — Design direction constraint from the human: strictly black and white (monochrome, no accent hues), minimalist, in the spirit of Apple's design language: generous whitespace, restrained typography, subtle hairline borders, high contrast, no decorative ornament.",
+  "productName": "Chiri",
+  "projectId": "5093882949210672317",
+  "designSystemAsset": "assets/14629870475207804554",
+  "deviceType": "DESKTOP",
+  "designMd": "DESIGN.md",
+  "screens": [
+    {
+      "label": "Document editor - mid-draft with live continuation and a pending revision",
+      "name": "projects/5093882949210672317/screens/c70a0537ee4c40f2bc950af071bc73ec",
+      "screenId": "c70a0537ee4c40f2bc950af071bc73ec",
+      "html": "docs/design-preview/chiri/document-editor-mid-draft-with-live-continuation-and-a-pending-revision.html",
+      "status": "rendered"
+    },
+    {
+      "label": "Launch Splash",
+      "key": "launch-splash",
+      "frIds": [
+        "FR-2"
+      ],
+      "name": "projects/5093882949210672317/screens/85806c8f0409413e9ef04e433e355518",
+      "screenId": "85806c8f0409413e9ef04e433e355518",
+      "html": "docs/design-preview/chiri/screens/launch-splash.html",
+      "status": "rendered"
+    },
+    {
+      "label": "API Key Gate",
+      "key": "api-key-gate",
+      "frIds": [
+        "FR-1"
+      ],
+      "name": "projects/5093882949210672317/screens/96ef221a95304571a14f65e39c81b371",
+      "screenId": "96ef221a95304571a14f65e39c81b371",
+      "html": "docs/design-preview/chiri/screens/api-key-gate.html",
+      "status": "rendered"
+    },
+    {
+      "label": "Empty Document Onboarding",
+      "key": "onboarding-empty-document",
+      "frIds": [
+        "FR-3",
+        "FR-11"
+      ],
+      "name": "projects/5093882949210672317/screens/4d7bfb35f79d4db5ab063928f55c9c2b",
+      "screenId": "4d7bfb35f79d4db5ab063928f55c9c2b",
+      "html": "docs/design-preview/chiri/screens/onboarding-empty-document.html",
+      "status": "rendered"
+    },
+    {
+      "label": "Editor with Inline Continuation",
+      "key": "editor-continuation",
+      "frIds": [
+        "FR-3",
+        "FR-5",
+        "FR-10"
+      ],
+      "name": "projects/5093882949210672317/screens/024d1263ab0e45df938f3de6672a6caf",
+      "screenId": "024d1263ab0e45df938f3de6672a6caf",
+      "html": "docs/design-preview/chiri/screens/editor-continuation.html",
+      "status": "rendered"
+    },
+    {
+      "label": "Editor with Selection Revision and Refinement",
+      "key": "editor-revision-diff",
+      "frIds": [
+        "FR-6",
+        "FR-7"
+      ],
+      "name": "projects/5093882949210672317/screens/b33570b90dbc472cb6b3b37858892e50",
+      "screenId": "b33570b90dbc472cb6b3b37858892e50",
+      "html": "docs/design-preview/chiri/screens/editor-revision-diff.html",
+      "status": "rendered"
+    },
+    {
+      "label": "Model Selector Open",
+      "key": "model-selector-open",
+      "frIds": [
+        "FR-8"
+      ],
+      "name": "projects/5093882949210672317/screens/643e8287fb2c4c0ea76a66143ae255ac",
+      "screenId": "643e8287fb2c4c0ea76a66143ae255ac",
+      "html": "docs/design-preview/chiri/screens/model-selector-open.html",
+      "status": "rendered"
+    },
+    {
+      "label": "Export Document",
+      "key": "export-menu",
+      "frIds": [
+        "FR-9"
+      ],
+      "name": "projects/5093882949210672317/screens/6ea87605ccc345c7ad5e4b7c85bd6a5f",
+      "screenId": "6ea87605ccc345c7ad5e4b7c85bd6a5f",
+      "html": "docs/design-preview/chiri/screens/export-menu.html",
+      "status": "rendered"
+    },
+    {
+      "label": "AI Failure and Offline State",
+      "key": "revision-failure-state",
+      "frIds": [
+        "FR-12"
+      ],
+      "name": "projects/5093882949210672317/screens/288e7bf4c29f4ba78224f4f00f246421",
+      "screenId": "288e7bf4c29f4ba78224f4f00f246421",
+      "html": "docs/design-preview/chiri/screens/revision-failure-state.html",
+      "status": "rendered"
+    }
+  ],
+  "gallery": "/Users/lorenzotomasdiez/projects/chiri-markdown-ai/docs/design-preview/chiri/index.html"
+}

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chiri — Writing Surface</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Public+Sans:wght@400;500&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Public+Sans:wght@100..900&display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            font-size: 18px;
+            vertical-align: middle;
+        }
+        /* Custom ghost text effect for the "think" moments mentioned in direction */
+        .ghost-text {
+            color: rgba(29, 29, 31, 0.3);
+            pointer-events: none;
+            user-select: none;
+        }
+        /* Hide scrollbar for clean paper look */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        [contenteditable]:focus {
+            outline: none;
+        }
+        
+        .writing-surface h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 2rem;
+            letter-spacing: -0.02em;
+        }
+
+        .writing-surface p {
+            font-size: 1.125rem;
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+            color: #1D1D1F;
+        }
+
+        .selection-highlight {
+            background-color: rgba(29, 29, 31, 0.08);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary": "#1D1D1F",
+                        "on-primary-container": "#868587",
+                        "inverse-surface": "#313030",
+                        "on-secondary": "#ffffff",
+                        "secondary": "#5f5e5f",
+                        "surface-container": "#f1edec",
+                        "surface-bright": "#fdf8f8",
+                        "tertiary-fixed-dim": "#cec4c2",
+                        "surface-container-high": "#ebe7e7",
+                        "primary-container": "#1d1d1f",
+                        "on-secondary-container": "#646263",
+                        "on-tertiary-fixed-variant": "#4c4544",
+                        "on-tertiary-container": "#8c8382",
+                        "on-error": "#ffffff",
+                        "secondary-fixed-dim": "#c9c6c6",
+                        "background": "#fdf8f8",
+                        "surface-dim": "#ddd9d9",
+                        "primary-fixed": "#e4e2e4",
+                        "on-primary-fixed-variant": "#474649",
+                        "on-primary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed": "#e5e2e2",
+                        "on-secondary-fixed": "#1c1b1c",
+                        "tertiary-container": "#211c1b",
+                        "secondary-container": "#e2dfdf",
+                        "on-background": "#1c1b1b",
+                        "surface-container-highest": "#e5e2e1",
+                        "inverse-on-surface": "#f4f0ef",
+                        "on-tertiary-fixed": "#1f1a19",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-fixed-dim": "#c8c6c8",
+                        "error": "#ba1a1a",
+                        "outline-variant": "#c7c6ca",
+                        "surface-variant": "#e5e2e1",
+                        "surface": "#fdf8f8",
+                        "surface-tint": "#5f5e60",
+                        "outline": "#77767b",
+                        "inverse-primary": "#c8c6c8",
+                        "tertiary": "#040302",
+                        "on-error-container": "#93000a",
+                        "surface-container-low": "#f7f3f2",
+                        "on-secondary-fixed-variant": "#474647",
+                        "tertiary-fixed": "#ebe0de",
+                        "on-surface-variant": "#46464a",
+                        "on-primary-fixed": "#1b1b1d",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#1c1b1b"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter"],
+                        "display": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Public Sans"]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface font-body text-primary selection:bg-primary selection:text-surface">
+<!-- TopNavBar -->
+<header class="fixed top-0 w-full h-12 bg-surface flex justify-between items-center px-6 border-b border-outline-variant/30 z-50">
+<!-- Left: Brand -->
+<div class="flex items-center gap-2">
+<img alt="Chiri Logo" class="h-5 w-5 grayscale contrast-125" src="https://lh3.googleusercontent.com/aida/AP1WRLtJutmZeEIiWKwFZg48Ix0-owGRCTOdR7Qj8bHXLJzR9eZccJbH7_lJcm7fsOcglXo0ewft9kd-2uW0VV7hquLqX2AjHIiHqIF2X46FvlWNYsIbLFRh8tK_UPn3P-fGIzQO5dHyjkV8359ezFNOlCPjr0sED2exE8VpcNbK5nQWytu5cW5LQemOoD_u6_3d1FnLzepJ-78hIlDofwTQDgZfl2roJDZEOhIjDr8c0zkES3G3uBhnNGDDZmk"/>
+<span class="text-lg font-headline font-semibold text-primary tracking-tight">Chiri</span>
+</div>
+<!-- Right: Actions -->
+<div class="flex items-center gap-6">
+<!-- Predictions Toggle -->
+<div class="flex items-center gap-2">
+<span class="text-sm font-medium text-primary">Predictions</span>
+<button class="w-8 h-4 bg-primary-container rounded-full relative transition-colors duration-200" id="toggle-predictions">
+<span class="absolute right-0.5 top-0.5 w-3 h-3 bg-surface rounded-full shadow-sm"></span>
+</button>
+</div>
+<!-- Model Selector -->
+<div class="flex items-center gap-1 cursor-pointer opacity-80 hover:opacity-100 transition-opacity">
+<span class="text-sm font-medium">GPT-4o mini</span>
+<span class="material-symbols-outlined">expand_more</span>
+</div>
+<!-- Action Buttons Row -->
+<div class="flex items-center gap-4">
+<!-- Copy Button State: Just Clicked -->
+<div class="flex items-center gap-2">
+<span class="text-[10px] uppercase tracking-widest font-bold text-primary/40 animate-pulse" id="copied-toast">Copied!</span>
+<button class="flex items-center gap-1 cursor-pointer opacity-100 transition-opacity">
+<span class="material-symbols-outlined">copy_all</span>
+</button>
+</div>
+<!-- Download Button -->
+<button class="flex items-center gap-1 cursor-pointer opacity-80 hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined">download</span>
+<span class="text-sm font-medium">.md</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Context Tooltip (Floating under Header) -->
+<div class="fixed top-12 right-6 pt-2 z-40 pointer-events-none">
+<span class="text-[11px] font-label text-on-surface-variant/50 tracking-wide bg-surface/80 backdrop-blur-sm px-1">
+            why-remote-teams-struggle-with-async-communication.md
+        </span>
+</div>
+<!-- Main Content Canvas -->
+<main class="w-full min-h-screen flex justify-center bg-surface no-scrollbar">
+<div class="w-full max-w-2xl pt-24 px-6 pb-48">
+<article class="writing-surface" contenteditable="true" spellcheck="false">
+<h1 id="doc-title">Why Remote Teams Struggle with Async Communication</h1>
+<p>
+                    The transition to remote work was supposed to be the death of the meeting. In theory, the ability to collaborate across timezones without the friction of physical proximity would unlock a new era of deep work. Yet, for many organizations, the "digital office" has simply replaced conference rooms with endless Slack threads and back-to-back Zoom calls that could have been an email.
+                </p>
+<p>
+                    The core struggle is not technological, but cultural. We have ported synchronous habits into asynchronous tools. When a manager expects a response to a Slack message within five minutes, it isn't asynchronous communication; it's just a high-latency meeting with extra typing.
+                </p>
+<p>
+                    Effective async requires a fundamental shift in how we define "progress." In a synchronous world, presence equals productivity. In an async world, documentation is the only reliable proxy for work. If a decision isn't written down in a central source of truth, it effectively didn't happen. This puts a massive premium on writing as a core competency for every single employee, regardless of their role.
+                </p>
+<p>
+                    Teams that master this often find that the "struggle" isn't the delay in responses, but the discipline required to provide context. You can't just ask "Got a sec?" in an async environment. You have to provide the context, the data, the proposal, and the deadline in the initial message. It's more work upfront, but it buys back hours of focused time for everyone involved.
+                </p>
+<!-- AI Ghost Text Suggestion (Simulated) -->
+<p>
+<span class="ghost-text">The final challenge lies in timezone parity. When the "headquarters" timezone dictates the rhythm of the day, those in outlier zones become second-class citizens, forever catching up on conversations that happened while they slept. True async parity means the rhythm of the work is dictated by the document, not the clock.</span>
+</p>
+</article>
+</div>
+</main>
+<!-- Status Bar (Minimal) -->
+<footer class="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-6 px-4 py-2 border border-outline-variant/20 rounded-lg bg-surface/50 backdrop-blur-md text-[10px] tracking-widest text-on-surface-variant/40 uppercase font-medium">
+<span>642 Words</span>
+<span>4,120 Characters</span>
+<span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-primary/20"></span> Saved to Cloud</span>
+</footer>
+<script>
+        // Simple Micro-interaction for the "Copied!" label fade
+        setTimeout(() => {
+            const toast = document.getElementById('copied-toast');
+            if (toast) {
+                toast.style.transition = 'opacity 2s ease-in-out';
+                toast.style.opacity = '0';
+            }
+        }, 3000);
+
+        // Allow toggle interaction
+        const toggle = document.getElementById('toggle-predictions');
+        let isOn = true;
+        toggle.addEventListener('click', () => {
+            isOn = !isOn;
+            const knob = toggle.querySelector('span');
+            if (isOn) {
+                toggle.classList.replace('bg-outline-variant', 'bg-primary-container');
+                knob.classList.replace('left-0.5', 'right-0.5');
+                document.querySelectorAll('.ghost-text').forEach(el => el.style.display = 'inline');
+            } else {
+                toggle.classList.replace('bg-primary-container', 'bg-outline-variant');
+                knob.classList.replace('right-0.5', 'left-0.5');
+                document.querySelectorAll('.ghost-text').forEach(el => el.style.display = 'none');
+            }
+        });
+
+        // Maintain focus on writing surface
+        const surface = document.querySelector('.writing-surface');
+        surface.addEventListener('keydown', (e) => {
+            // Very basic tab handling for the paper feel
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                document.execCommand('insertHTML', false, '    ');
+            }
+        });
+    </script>
+</body></html>

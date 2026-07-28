@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chiri | API Gate</title>
+<!-- Google Fonts: Inter for Headline/Body, Public Sans for Labels (as per Design System) -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-fixed-dim": "#cec4c2",
+                    "inverse-primary": "#c8c6c8",
+                    "on-secondary-fixed-variant": "#474647",
+                    "surface-dim": "#ddd9d9",
+                    "tertiary-fixed": "#ebe0de",
+                    "on-background": "#1c1b1b",
+                    "on-surface-variant": "#46464a",
+                    "surface": "#fdf8f8",
+                    "surface-tint": "#5f5e60",
+                    "on-error-container": "#93000a",
+                    "on-primary-fixed": "#1b1b1d",
+                    "on-error": "#ffffff",
+                    "surface-container-highest": "#e5e2e1",
+                    "on-primary-container": "#868587",
+                    "error": "#ba1a1a",
+                    "outline-variant": "#c7c6ca",
+                    "primary-fixed": "#e4e2e4",
+                    "on-secondary-container": "#646263",
+                    "on-primary": "#ffffff",
+                    "surface-variant": "#e5e2e1",
+                    "secondary": "#5f5e5f",
+                    "on-tertiary": "#ffffff",
+                    "primary-fixed-dim": "#c8c6c8",
+                    "inverse-surface": "#313030",
+                    "on-secondary": "#ffffff",
+                    "on-surface": "#1c1b1b",
+                    "background": "#fdf8f8",
+                    "tertiary": "#040302",
+                    "surface-container-high": "#ebe7e7",
+                    "on-secondary-fixed": "#1c1b1c",
+                    "inverse-on-surface": "#f4f0ef",
+                    "primary": "#030304",
+                    "error-container": "#ffdad6",
+                    "surface-bright": "#fdf8f8",
+                    "on-tertiary-fixed-variant": "#4c4544",
+                    "secondary-fixed-dim": "#c9c6c6",
+                    "outline": "#77767b",
+                    "secondary-container": "#e2dfdf",
+                    "tertiary-container": "#211c1b",
+                    "surface-container": "#f1edec",
+                    "primary-container": "#1d1d1f",
+                    "on-tertiary-fixed": "#1f1a19",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container-low": "#f7f3f2",
+                    "on-tertiary-container": "#8c8382",
+                    "secondary-fixed": "#e5e2e2",
+                    "on-primary-fixed-variant": "#474649"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "display": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Public Sans"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fdf8f8;
+            color: #1c1b1b;
+        }
+        .paper-backdrop {
+            background-color: rgba(253, 248, 248, 0.85);
+            backdrop-filter: blur(4px);
+        }
+        .input-focus-ring:focus {
+            outline: none;
+            border-color: #030304;
+            box-shadow: 0 0 0 1px #030304;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen overflow-hidden selection:bg-primary-fixed selection:text-primary">
+<!-- Dimmed Full-Window Backdrop -->
+<div class="fixed inset-0 paper-backdrop z-0"></div>
+<!-- Centered Modal -->
+<main class="relative z-10 w-full max-w-lg px-8 py-16 bg-surface border border-outline-variant/30 rounded-lg shadow-[0_4px_32px_rgba(0,0,0,0.02)]">
+<div class="space-y-12">
+<!-- Header Section -->
+<header class="space-y-3">
+<h1 class="text-3xl font-headline font-semibold tracking-tight text-primary leading-tight">
+                    Connect your OpenRouter key
+                </h1>
+<p class="text-on-surface-variant leading-relaxed font-body text-[15px]">
+                    Your key is stored only on this machine and sent only to OpenRouter.
+                </p>
+</header>
+<!-- Interaction Area -->
+<div class="space-y-6">
+<!-- API Input Field -->
+<div class="relative">
+<label class="block text-[11px] font-label font-semibold uppercase tracking-[0.08em] text-on-surface-variant mb-2" for="api-key">
+                        API Key
+                    </label>
+<div class="group relative">
+<input class="w-full h-12 bg-transparent border border-outline rounded-sm px-4 text-primary font-mono text-sm tracking-wide transition-all input-focus-ring placeholder:text-outline-variant" id="api-key" placeholder="sk-or-v1-••••••••7f2a" type="password"/>
+</div>
+</div>
+<!-- Primary Action -->
+<button class="w-full h-12 bg-primary text-on-primary font-medium rounded-sm hover:opacity-90 active:opacity-75 transition-all flex items-center justify-center space-x-2 text-sm tracking-tight">
+<span>Connect</span>
+</button>
+</div>
+<!-- Mutually Exclusive States Stack (Illustration) -->
+<section class="pt-8 border-t border-outline-variant/20 space-y-8">
+<div class="space-y-2">
+<p class="text-[10px] font-label font-bold text-outline-variant uppercase tracking-widest">State Illustration</p>
+<!-- 1. Idle -->
+<div class="flex items-center space-x-3 py-2">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">info</span>
+<span class="text-sm text-on-surface-variant font-body">Enter your API key to get started.</span>
+</div>
+<!-- 2. Error -->
+<div class="flex items-center space-x-3 py-2">
+<span class="material-symbols-outlined text-[18px] text-error">error</span>
+<span class="text-sm text-error font-body">That key was rejected by OpenRouter.</span>
+</div>
+<!-- 3. Checking -->
+<div class="flex items-center space-x-3 py-2">
+<div class="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+<span class="text-sm text-on-surface-variant font-body">Checking your key…</span>
+</div>
+</div>
+</section>
+<!-- Footer Action -->
+<footer class="text-center pt-4">
+<button class="text-xs font-label text-on-surface-variant/60 hover:text-primary underline-offset-4 hover:underline transition-colors cursor-pointer">
+                    Clear stored key
+                </button>
+</footer>
+</div>
+</main>
+<!-- Visual Polish: Paper Texture Overlay (Optional, via data-alt style) -->
+<div class="fixed inset-0 pointer-events-none opacity-[0.03] contrast-150 grayscale" data-alt="A macro photography shot of a high-end, heavy-weight off-white cotton paper texture. The lighting is perfectly flat and even, highlighting the subtle organic fibers and grain of the material. The aesthetic is extremely minimalist and clean, reinforcing a premium, tactile writing environment in a monochromatic palette." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA_SLGnldj0c_ZbedPUW4jfSeKv09ysjOBrn_j33SxYDkqLPrg-oc6vLseDwri--6EwtSp1lftjLjDefOOnLhr_ZcttfE9ICTMc4-xcfpOSjmm1icfXDpzrG0i3m3XqwYtzWguhmLpVufyqPuEKDlbRFmjIzQkdXf8mSDeilgNyYrPz4Vdg8NNK1B8be5m_geMtp96074pg8KvCKjKbFekYzQUg7iEULoLGofThpKeypIgvRl3YtfJGClboCJZc6u0xCgdEfqjiRJs')">
+</div>
+<script>
+        // Micro-interaction: Mimic 'Checking' state on Connect click
+        const button = document.querySelector('button');
+        const input = document.querySelector('input');
+        
+        button.addEventListener('mousedown', () => {
+            console.log('Action triggered');
+        });
+
+        // Simple placeholder animation for input focus
+        input.addEventListener('focus', () => {
+            input.setAttribute('placeholder', 'Paste key here');
+        });
+        input.addEventListener('blur', () => {
+            input.setAttribute('placeholder', 'sk-or-v1-••••••••7f2a');
+        });
+    </script>
+</body></html>

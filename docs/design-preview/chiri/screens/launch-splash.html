@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chiri</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface": "#fdf8f8",
+                    "secondary-fixed-dim": "#c9c6c6",
+                    "secondary-fixed": "#e5e2e2",
+                    "secondary-container": "#e2dfdf",
+                    "error-container": "#ffdad6",
+                    "on-primary-fixed": "#1b1b1d",
+                    "background": "#fdf8f8",
+                    "tertiary": "#040302",
+                    "on-tertiary": "#ffffff",
+                    "on-surface": "#1c1b1b",
+                    "tertiary-container": "#211c1b",
+                    "surface-container-high": "#ebe7e7",
+                    "surface-dim": "#ddd9d9",
+                    "surface-container-low": "#f7f3f2",
+                    "surface-variant": "#e5e2e1",
+                    "on-tertiary-container": "#8c8382",
+                    "error": "#ba1a1a",
+                    "surface-container-highest": "#e5e2e1",
+                    "on-secondary-fixed-variant": "#474647",
+                    "on-tertiary-fixed": "#1f1a19",
+                    "on-surface-variant": "#46464a",
+                    "surface-container": "#f1edec",
+                    "surface-bright": "#fdf8f8",
+                    "secondary": "#5f5e5f",
+                    "inverse-on-surface": "#f4f0ef",
+                    "tertiary-fixed": "#ebe0de",
+                    "tertiary-fixed-dim": "#cec4c2",
+                    "on-secondary-container": "#646263",
+                    "surface-tint": "#5f5e60",
+                    "on-error-container": "#93000a",
+                    "on-primary": "#ffffff",
+                    "primary-container": "#1d1d1f",
+                    "surface-container-lowest": "#ffffff",
+                    "primary": "#030304",
+                    "on-tertiary-fixed-variant": "#4c4544",
+                    "inverse-primary": "#c8c6c8",
+                    "on-primary-fixed-variant": "#474649",
+                    "outline": "#77767b",
+                    "on-secondary-fixed": "#1c1b1c",
+                    "inverse-surface": "#313030",
+                    "primary-fixed": "#e4e2e4",
+                    "outline-variant": "#c7c6ca",
+                    "on-error": "#ffffff",
+                    "on-primary-container": "#868587",
+                    "on-background": "#1c1b1b",
+                    "primary-fixed-dim": "#c8c6c8",
+                    "on-secondary": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "display": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Public Sans"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        /* Subtle paper texture effect */
+        .paper-texture {
+            background-color: #fdf8f8;
+            background-image: url("https://www.transparenttextures.com/patterns/natural-paper.png");
+            background-repeat: repeat;
+        }
+
+        /* Animation for the logo breathing/appearing */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .animate-frontispiece {
+            animation: fadeIn 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+    </style>
+</head>
+<body class="bg-surface text-primary font-body antialiased selection:bg-secondary-container/30">
+<!-- 
+        CHIRI SPLASH SCREEN 
+        Reflects 'blank sheet of paper' aesthetic.
+        Absolute minimal execution.
+    -->
+<main class="relative w-full h-screen overflow-hidden flex items-center justify-center paper-texture">
+<!-- Centerpiece Container -->
+<div class="relative z-10 flex flex-col items-center justify-center pointer-events-none select-none">
+<!-- Chiri Logo as a Frontispiece -->
+<div class="w-48 h-48 md:w-64 md:h-64 animate-frontispiece opacity-0">
+<img alt="Chiri Logo" class="w-full h-full object-contain filter grayscale brightness-0 contrast-125" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSITLZC-JP-vOFQTrICbaUpFwQgpYnOaIJAafXRt3g2uBHMuwQ8pFtKR5dVJ4cQXMUrVx-yr0-1AJoDDeefK1N48EyqtIs5XvKX3wr7oojhieb5ZKDZ8piZaYmF50f614BlMugPASkXiHZGp97tFpHd632gz_dkuuCNjj_9qj8VuwX0aiSNxLl3mN6l4ZZ9iT99Eu1O-nRLpmA4WNNYT-cltwlcTm5b2dkPp6ImQGkBPgDRxIREUQ8WO8EwZRXF8_UC_mSCSPiiiU"/>
+</div>
+<!-- Optional: A microscopic typographic weight anchor, if logo alone feels untethered. 
+                 Design direction says no text, but the product name is the identity. 
+                 As per prompt constraints: "No text", so we strictly use only the Image 6. -->
+</div>
+<!-- Atmospheric hairline border framing the window (optional but adds to 'paper' feel) -->
+<div class="fixed inset-8 border border-outline-variant/10 pointer-events-none"></div>
+</main>
+<script>
+        // Micro-interaction: Subtle parallax or mouse-follow for the logo to give it "weight"
+        document.addEventListener('mousemove', (e) => {
+            const logo = document.querySelector('.animate-frontispiece');
+            if (!logo) return;
+
+            const x = (window.innerWidth / 2 - e.pageX) / 100;
+            const y = (window.innerHeight / 2 - e.pageY) / 100;
+
+            logo.style.transform = `translate(${x}px, ${y}px)`;
+        });
+
+        // Ensure the light mode is forced
+        document.documentElement.classList.add('light');
+        document.documentElement.classList.remove('dark');
+    </script>
+</body></html>

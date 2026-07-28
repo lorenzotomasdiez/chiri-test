@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chiri | Launch Notes: Field Notebook v2</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Public+Sans:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-fixed": "#1c1b1c",
+                    "tertiary-container": "#211c1b",
+                    "surface-dim": "#ddd9d9",
+                    "error": "#ba1a1a",
+                    "surface-variant": "#e5e2e1",
+                    "surface": "#fdf8f8",
+                    "on-primary-container": "#868587",
+                    "on-secondary": "#ffffff",
+                    "on-primary-fixed-variant": "#474649",
+                    "primary-container": "#1d1d1f",
+                    "primary": "#030304",
+                    "on-surface-variant": "#46464a",
+                    "secondary-fixed": "#e5e2e2",
+                    "outline": "#77767b",
+                    "secondary-container": "#e2dfdf",
+                    "on-error": "#ffffff",
+                    "inverse-on-surface": "#f4f0ef",
+                    "on-surface": "#1c1b1b",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-tint": "#5f5e60",
+                    "inverse-surface": "#313030",
+                    "on-tertiary-fixed": "#1f1a19",
+                    "inverse-primary": "#c8c6c8",
+                    "tertiary-fixed-dim": "#cec4c2",
+                    "surface-container-high": "#ebe7e7",
+                    "surface-bright": "#fdf8f8",
+                    "primary-fixed": "#e4e2e4",
+                    "error-container": "#ffdad6",
+                    "tertiary-fixed": "#ebe0de",
+                    "secondary": "#5f5e5f",
+                    "background": "#fdf8f8",
+                    "primary-fixed-dim": "#c8c6c8",
+                    "outline-variant": "#c7c6ca",
+                    "on-secondary-fixed-variant": "#474647",
+                    "on-background": "#1c1b1b",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary-container": "#646263",
+                    "on-error-container": "#93000a",
+                    "tertiary": "#040302",
+                    "on-tertiary-fixed-variant": "#4c4544",
+                    "on-primary": "#ffffff",
+                    "surface-container": "#f1edec",
+                    "on-primary-fixed": "#1b1b1d",
+                    "surface-container-highest": "#e5e2e1",
+                    "on-tertiary-container": "#8c8382",
+                    "surface-container-low": "#f7f3f2",
+                    "secondary-fixed-dim": "#c9c6c6"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "display": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Public Sans"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fdf8f8; /* Paper background */
+            color: #030304; /* Near-black ink */
+            line-height: 1.6;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;
+            font-size: 18px;
+        }
+        .caret {
+            display: inline-block;
+            width: 1px;
+            height: 1.2em;
+            background-color: #030304;
+            vertical-align: middle;
+            margin-left: 1px;
+            animation: blink 1s step-end infinite;
+        }
+        @keyframes blink {
+            from, to { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        ::selection {
+            background: rgba(29, 29, 31, 0.1);
+        }
+        .markdown-body h1 {
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+        .diff-container {
+            position: relative;
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
+        .floating-action-bar {
+            position: absolute;
+            top: -48px;
+            left: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #ffffff;
+            border: 1px solid rgba(29, 29, 31, 0.1);
+            padding: 4px 8px;
+            border-radius: 8px;
+            z-index: 10;
+        }
+        .diff-label {
+            font-size: 11px;
+            color: rgba(29, 29, 31, 0.5);
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        code {
+            background: rgba(0,0,0,0.04);
+            padding: 0.2em 0.4em;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+    </style>
+</head>
+<body class="selection:bg-primary/10">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full bg-surface dark:bg-surface border-b border-outline-variant/30 flex justify-between items-center h-14 px-6 w-full z-50">
+<div class="flex items-center gap-4">
+<span class="text-lg font-headline font-semibold text-primary dark:text-on-surface">Chiri</span>
+<div class="h-4 w-[1px] bg-outline-variant/30"></div>
+<div class="flex items-center gap-1 cursor-pointer hover:opacity-70 transition-opacity">
+<span class="text-label-sm font-body tracking-tight text-secondary">Chiri-1 (Pro)</span>
+<span class="material-symbols-outlined text-[16px]">expand_more</span>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="p-1.5 hover:bg-surface-container-low rounded-md transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined text-secondary">smart_toy</span>
+</button>
+<button class="p-1.5 hover:bg-surface-container-low rounded-md transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined text-secondary">download</span>
+</button>
+<button class="p-1.5 hover:bg-surface-container-low rounded-md transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined text-secondary">more_vert</span>
+</button>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="pt-32 pb-40 px-6 max-w-2xl mx-auto">
+<article class="markdown-body">
+<!-- H1 -->
+<h1 class="text-4xl mb-12 text-primary">Launch Notes: Field Notebook v2</h1>
+<!-- Paragraph 1 -->
+<p class="text-lg mb-8 text-on-surface/90 leading-relaxed">
+                Field Notebook v2 represents our most significant update to the mobile writing experience. We've rebuilt the core syncing engine from the ground up to ensure that every keystroke is preserved across devices, even in low-connectivity environments. The goal was to eliminate the friction between thought and digital capture.
+            </p>
+<!-- Active Paragraph with Ghost Text -->
+<p class="text-lg mb-8 text-on-surface/90 leading-relaxed">
+                The new interface prioritizes vertical rhythm and clarity, allowing the user to focus entirely on the content without<span class="caret"></span><span class="italic opacity-50 ml-1">distractions from unnecessary UI chrome.</span>
+</p>
+<!-- Revision Paragraph (Inline Diff) -->
+<div class="diff-container group">
+<!-- Floating Action Bar -->
+<div class="floating-action-bar transition-all duration-200 shadow-sm">
+<button class="px-3 py-1.5 text-xs font-medium hover:bg-surface-container-low rounded transition-colors border border-transparent">Shorten</button>
+<button class="px-3 py-1.5 text-xs font-medium hover:bg-surface-container-low rounded transition-colors border border-transparent">Change tone</button>
+<div class="w-[1px] h-4 bg-outline-variant/30"></div>
+<input class="text-xs border-none focus:ring-0 bg-transparent w-40 placeholder:opacity-40" placeholder="Make it more punchy..." type="text"/>
+</div>
+<div class="relative bg-surface-container-lowest p-6 -mx-6 border-y border-outline-variant/10">
+<p class="text-lg leading-relaxed">
+<del class="line-through opacity-40">This version of the application includes several brand new features that we think our users will really appreciate for their daily work.</del>
+<ins class="bg-primary/5 border-b border-primary/20 no-underline px-1 py-0.5 rounded-sm">V2 introduces powerful new tools designed to accelerate your daily workflow.</ins>
+</p>
+<div class="flex items-center justify-between mt-4">
+<div class="diff-label">
+<span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+                            Shortened for clarity
+                        </div>
+<div class="flex items-center gap-2">
+<button class="w-7 h-7 flex items-center justify-center rounded border border-outline-variant/30 hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-primary text-[16px]">close</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded bg-primary text-on-primary hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Bulleted List -->
+<ul class="list-none space-y-4 mb-8 text-lg">
+<li class="flex items-start gap-4">
+<span class="mt-2.5 w-1.5 h-1.5 rounded-full bg-primary/20 shrink-0"></span>
+<span>Zero-latency local-first storage</span>
+</li>
+<li class="flex items-start gap-4">
+<span class="mt-2.5 w-1.5 h-1.5 rounded-full bg-primary/20 shrink-0"></span>
+<span>E2E encrypted collaborative editing</span>
+</li>
+<li class="flex items-start gap-4">
+<span class="mt-2.5 w-1.5 h-1.5 rounded-full bg-primary/20 shrink-0"></span>
+<span>Customizable markdown themes</span>
+</li>
+</ul>
+<!-- Inline Code -->
+<p class="text-lg text-on-surface/90 leading-relaxed">
+                Advanced users can modify their local environment via the <code>notebook.config.yaml</code> as an inline code span. We've simplified the schema to support rapid experimentation with fonts and spacing.
+            </p>
+</article>
+</main>
+<!-- Invisible footer for spacing and "paper" end feeling -->
+<footer class="h-64 pointer-events-none"></footer>
+<script>
+        // Micro-interaction: Mimic "thinking" state for ghost text
+        document.addEventListener('DOMContentLoaded', () => {
+            const ghostText = document.querySelector('.italic.opacity-50');
+            const caret = document.querySelector('.caret');
+
+            // Subtle typing simulation for the ghost text on first view
+            let text = ghostText.textContent;
+            ghostText.textContent = '';
+            let i = 0;
+
+            function typeGhost() {
+                if (i < text.length) {
+                    ghostText.textContent += text.charAt(i);
+                    i++;
+                    setTimeout(typeGhost, Math.random() * 50 + 20);
+                }
+            }
+
+            // Trigger after a small delay
+            setTimeout(typeGhost, 1000);
+        });
+
+        // Simple export button feedback
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.classList.add('scale-95');
+                setTimeout(() => this.classList.remove('scale-95'), 100);
+            });
+        });
+    </script>
+</body></html>

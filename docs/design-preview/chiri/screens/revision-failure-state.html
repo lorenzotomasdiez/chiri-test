@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chiri | Editor Error States</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Public+Sans:wght@400;500&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container": "#f1edec",
+                        "surface-container-high": "#ebe7e7",
+                        "background": "#fdf8f8",
+                        "tertiary-fixed": "#ebe0de",
+                        "on-secondary-fixed": "#1c1b1c",
+                        "primary": "#1D1D1F",
+                        "on-secondary-fixed-variant": "#474647",
+                        "inverse-primary": "#c8c6c8",
+                        "on-secondary": "#ffffff",
+                        "secondary-fixed": "#e5e2e2",
+                        "tertiary-container": "#211c1b",
+                        "primary-fixed-dim": "#c8c6c8",
+                        "primary-container": "#1d1d1f",
+                        "on-background": "#1c1b1b",
+                        "inverse-surface": "#313030",
+                        "secondary-container": "#e2dfdf",
+                        "tertiary-fixed-dim": "#cec4c2",
+                        "surface-dim": "#ddd9d9",
+                        "surface-variant": "#e5e2e1",
+                        "inverse-on-surface": "#f4f0ef",
+                        "surface-container-highest": "#e5e2e1",
+                        "surface-container-low": "#f7f3f2",
+                        "surface": "#fdf8f8",
+                        "surface-container-lowest": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "tertiary": "#040302",
+                        "on-primary-fixed-variant": "#474649",
+                        "on-tertiary-fixed": "#1f1a19",
+                        "surface-bright": "#fdf8f8",
+                        "on-error": "#ffffff",
+                        "error": "#ba1a1a",
+                        "on-tertiary-container": "#8c8382",
+                        "on-primary-fixed": "#1b1b1d",
+                        "secondary-fixed-dim": "#c9c6c6",
+                        "outline-variant": "#c7c6ca",
+                        "on-surface": "#1c1b1b",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-container": "#646263",
+                        "on-primary-container": "#868587",
+                        "on-tertiary-fixed-variant": "#4c4544",
+                        "on-primary": "#ffffff",
+                        "surface-tint": "#5f5e60",
+                        "error-container": "#ffdad6",
+                        "primary-fixed": "#e4e2e4",
+                        "on-surface-variant": "#46464a",
+                        "outline": "#77767b",
+                        "secondary": "#5f5e5f"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter", "sans-serif"],
+                        "display": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Public Sans", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20; font-size: 18px; vertical-align: middle; }
+        ::selection { background-color: rgba(3, 3, 4, 0.1); }
+        .editor-container { max-width: 42rem; margin: 0 auto; }
+        .error-banner { border: 1px solid rgba(29, 29, 31, 0.1); background-color: #fcfafa; }
+    </style>
+</head>
+<body class="bg-background text-primary selection:bg-surface-container-high">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full h-12 bg-background border-b border-outline-variant/30 z-50 flex items-center justify-between px-6">
+<!-- Brand Section -->
+<div class="flex items-center gap-3 cursor-pointer">
+<img alt="Chiri Logo" class="w-5 h-5 object-contain" src="https://lh3.googleusercontent.com/aida/AP1WRLtJutmZeEIiWKwFZg48Ix0-owGRCTOdR7Qj8bHXLJzR9eZccJbH7_lJcm7fsOcglXo0ewft9kd-2uW0VV7hquLqX2AjHIiHqIF2X46FvlWNYsIbLFRh8tK_UPn3P-fGIzQO5dHyjkV8359ezFNOlCPjr0sED2exE8VpcNbK5nQWytu5cW5LQemOoD_u6_3d1FnLzepJ-78hIlDofwTQDgZfl2roJDZEOhIjDr8c0zkES3G3uBhnNGDDZmk"/>
+<span class="text-lg font-bold tracking-tighter text-primary">Chiri</span>
+</div>
+<!-- Controls Section -->
+<div class="flex items-center gap-6">
+<!-- Predictions Toggle -->
+<div class="flex items-center gap-2">
+<span class="font-body text-sm tracking-tight text-on-surface-variant opacity-60">Predictions</span>
+<div class="w-8 h-4 bg-primary rounded-full relative cursor-pointer active:scale-95 transition-all">
+<div class="absolute right-0.5 top-0.5 w-3 h-3 bg-white rounded-full"></div>
+</div>
+</div>
+<!-- Model Selector -->
+<div class="flex items-center gap-1 cursor-pointer hover:opacity-100 transition-opacity active:scale-95">
+<span class="font-body text-sm tracking-tight text-primary font-medium">GPT-4o mini</span>
+<span class="material-symbols-outlined text-on-surface-variant opacity-60">expand_more</span>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center gap-4 border-l border-outline-variant/30 pl-6">
+<button class="flex items-center gap-1.5 font-body text-sm tracking-tight text-on-surface-variant opacity-60 hover:opacity-100 transition-opacity cursor-pointer active:scale-95">
+<span class="material-symbols-outlined">copy_all</span>
+<span>Copy</span>
+</button>
+<button class="flex items-center gap-1.5 font-body text-sm tracking-tight text-on-surface-variant opacity-60 hover:opacity-100 transition-opacity cursor-pointer active:scale-95">
+<span class="material-symbols-outlined">download</span>
+<span>Download .md</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="editor-container pt-24 pb-40 px-6">
+<article class="prose prose-neutral max-w-none">
+<!-- Document Heading -->
+<h1 class="text-3xl font-extrabold tracking-tight mb-10 text-primary leading-tight">
+                Why Remote Teams Struggle with Async Communication
+            </h1>
+<!-- Paragraph 1 -->
+<p class="text-lg leading-relaxed text-on-surface-variant/90 mb-8">
+                Transitioning to a remote-first culture is often mistaken for simply moving meetings from a physical conference room to a digital grid of faces. However, the true unlock of distributed work isn't geographical independence; it's temporal independence. When teams fail to adopt a radical asynchronous workflow, they carry over the same urgency-driven habits that lead to burnout and "Zoom fatigue."
+            </p>
+<!-- Paragraph 2 (Highlighted/Selected State) -->
+<div class="relative group">
+<p class="text-lg leading-relaxed text-primary bg-surface-container-high/40 p-1 -mx-1 rounded-sm mb-4">
+                    The fundamental hurdle is the fear of silence. In a traditional office, immediate responsiveness is a proxy for productivity. Without the visual cue of a colleague hunched over their keyboard, managers often default to excessive check-ins, inadvertently creating a culture of constant interruption that destroys deep work.
+                </p>
+<!-- Error Banner 1: Retry Case -->
+<div class="error-banner flex items-center justify-between p-3 rounded-lg mb-8 animate-in fade-in slide-in-from-top-1 duration-300">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-error" style="font-variation-settings: 'opsz' 20, 'wght' 400;">error</span>
+<span class="text-sm font-body tracking-tight text-on-surface">Couldn't complete that request. Try again?</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3 py-1 bg-primary text-white text-xs font-medium rounded hover:bg-on-surface-variant transition-colors active:scale-95">
+                            Retry
+                        </button>
+<button class="p-1 text-on-surface-variant opacity-60 hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined" style="font-size: 16px;">close</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Paragraph 3 -->
+<p class="text-lg leading-relaxed text-on-surface-variant/90 mb-8">
+                Asynchronous communication requires high-context writing. It means providing all necessary information, links, and anticipated questions in the initial message. This shift requires more effort upfront but saves exponential time downstream by eliminating the "Do you have a second?" back-and-forth that plagues modern Slack channels.
+            </p>
+<!-- Error Banner 2: Account/Credit Case -->
+<div class="error-banner p-4 rounded-lg mb-8 border-l-2 border-primary">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary mt-0.5">info</span>
+<div class="flex-1">
+<p class="text-sm font-body tracking-tight leading-relaxed text-on-surface">
+                            Out of credit on your OpenRouter account. <span class="font-semibold">Add credit</span> to continue using AI features — editing still works.
+                        </p>
+</div>
+<button class="p-1 text-on-surface-variant opacity-60 hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined" style="font-size: 16px;">close</span>
+</button>
+</div>
+</div>
+<!-- Paragraph 4 -->
+<p class="text-lg leading-relaxed text-on-surface-variant/90 mb-8">
+                Ultimately, the goal is to decouple communication from the clock. This allows individuals to work during their peak focus hours, regardless of their time zone. A team that masters async is a team that treats attention as a finite, precious resource rather than a commodity available for 24/7 harvest.
+            </p>
+</article>
+</main>
+<!-- Micro-interaction Scripts -->
+<script>
+        // Minimal logic for UI feedback
+        document.querySelectorAll('.cursor-pointer').forEach(el => {
+            el.addEventListener('click', () => {
+                // Future expansion: handle transitions or state changes
+            });
+        });
+
+        // Simple dismiss logic for banners
+        document.querySelectorAll('.error-banner button:has(.material-symbols-outlined:contains("close"))').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const banner = e.target.closest('.error-banner');
+                banner.style.opacity = '0';
+                banner.style.transform = 'translateY(-10px)';
+                banner.style.transition = 'all 0.2s ease-out';
+                setTimeout(() => banner.remove(), 200);
+            });
+        });
+    </script>
+</body></html>

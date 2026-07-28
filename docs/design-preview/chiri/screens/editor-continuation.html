@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chiri — Writing</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&amp;family=Public+Sans:ital,wght@0,100..900;1,100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#ffffff",
+                        "tertiary": "#040302",
+                        "on-error-container": "#93000a",
+                        "inverse-on-surface": "#f4f0ef",
+                        "tertiary-fixed-dim": "#cec4c2",
+                        "tertiary-fixed": "#ebe0de",
+                        "primary": "#1D1D1F",
+                        "surface-variant": "#e5e2e1",
+                        "secondary": "#5f5e5f",
+                        "on-secondary-fixed": "#1c1b1c",
+                        "surface-container-highest": "#e5e2e1",
+                        "error": "#ba1a1a",
+                        "surface-bright": "#fdf8f8",
+                        "on-background": "#1c1b1b",
+                        "secondary-container": "#e2dfdf",
+                        "on-primary-fixed": "#1b1b1d",
+                        "on-secondary-fixed-variant": "#474647",
+                        "inverse-primary": "#c8c6c8",
+                        "on-surface-variant": "#46464a",
+                        "tertiary-container": "#211c1b",
+                        "on-error": "#ffffff",
+                        "on-primary-fixed-variant": "#474649",
+                        "surface-container-lowest": "#ffffff",
+                        "outline": "#77767b",
+                        "surface-dim": "#ddd9d9",
+                        "primary-fixed": "#e4e2e4",
+                        "on-tertiary-fixed": "#1f1a19",
+                        "on-surface": "#1c1b1b",
+                        "background": "#fdf8f8",
+                        "surface": "#fdf8f8",
+                        "outline-variant": "#c7c6ca",
+                        "on-tertiary-fixed-variant": "#4c4544",
+                        "error-container": "#ffdad6",
+                        "surface-tint": "#5f5e60",
+                        "surface-container-low": "#f7f3f2",
+                        "secondary-fixed": "#e5e2e2",
+                        "on-primary-container": "#868587",
+                        "primary-fixed-dim": "#c8c6c8",
+                        "primary-container": "#1d1d1f",
+                        "surface-container-high": "#ebe7e7",
+                        "on-tertiary-container": "#8c8382",
+                        "on-primary": "#ffffff",
+                        "inverse-surface": "#313030",
+                        "on-secondary-container": "#646263",
+                        "on-secondary": "#ffffff",
+                        "surface-container": "#f1edec",
+                        "secondary-fixed-dim": "#c9c6c6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter"],
+                        "display": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Public Sans"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .material-symbols-outlined {
+            font-size: 18px;
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+        }
+        .ghost-text {
+            color: #77767b;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+        .ghost-text:hover {
+            color: #1D1D1F;
+        }
+        pre {
+            background-color: #f1edec;
+            padding: 1rem;
+            border-radius: 0.25rem;
+            overflow-x: auto;
+            border: 1px solid rgba(199, 198, 202, 0.3);
+        }
+        code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 0.875rem;
+        }
+        .prose p {
+            margin-bottom: 1.5rem;
+            line-height: 1.75;
+            color: #1c1b1b;
+        }
+        .prose h1 {
+            margin-bottom: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            font-size: 2.25rem;
+            color: #1D1D1F;
+        }
+        .prose ul {
+            list-style-type: none;
+            padding-left: 0;
+            margin-bottom: 1.5rem;
+        }
+        .prose li {
+            position: relative;
+            padding-left: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .prose li::before {
+            content: "—";
+            position: absolute;
+            left: 0;
+            color: #77767b;
+        }
+        /* Custom pill toggle */
+        .toggle-pill {
+            width: 32px;
+            height: 18px;
+            background-color: #1D1D1F;
+            border-radius: 9999px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .toggle-dot {
+            width: 12px;
+            height: 12px;
+            background-color: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            transition: transform 0.2s;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background selection:bg-primary-fixed">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 h-12 flex items-center justify-between px-6 bg-background border-b border-outline-variant/30">
+<div class="flex items-center">
+<span class="text-lg font-semibold tracking-tighter text-primary">Chiri</span>
+</div>
+<nav class="flex items-center gap-6 font-body text-sm tracking-tight text-secondary">
+<!-- Predictions Toggle -->
+<div class="flex items-center gap-2">
+<span class="opacity-60">Predictions</span>
+<div class="toggle-pill">
+<div class="toggle-dot"></div>
+</div>
+</div>
+<!-- Model Selector -->
+<div class="flex items-center gap-1 cursor-pointer hover:opacity-100 transition-opacity duration-200">
+<span class="opacity-100 text-primary">GPT-4o mini</span>
+<span class="material-symbols-outlined text-outline">expand_more</span>
+</div>
+<div class="h-4 w-[1px] bg-outline-variant/30"></div>
+<!-- Copy Button -->
+<button class="flex items-center gap-1.5 cursor-pointer hover:opacity-100 transition-opacity duration-200 active:opacity-80">
+<span class="material-symbols-outlined">content_copy</span>
+<span>Copy</span>
+</button>
+<!-- Download Button -->
+<button class="flex items-center gap-1.5 cursor-pointer hover:opacity-100 transition-opacity duration-200 active:opacity-80">
+<span class="material-symbols-outlined">download</span>
+<span>Download .md</span>
+</button>
+</nav>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex flex-col items-center min-h-screen px-6">
+<article class="max-w-2xl w-full pt-24 pb-32 prose">
+<h1 class="font-headline">Why Remote Teams Struggle with Async Communication</h1>
+<p>
+                The shift to remote work was supposed to liberate our schedules, replacing the rigid 9-to-5 with a fluid, outcome-oriented rhythm. Yet, for many teams, the physical office has merely been replaced by a digital one that never sleeps. We’ve traded the conference room for the endless Zoom call and the "quick desk stop" for a relentless barrage of Slack notifications.
+            </p>
+<p>
+                The fundamental friction lies in the expectation of synchronicity. When a team operates across time zones without established async norms, the "always-on" culture becomes an accidental requirement. Standups become synchronous hurdles rather than status updates, and deep work is sacrificed at the altar of the immediate reply.
+            </p>
+<p>To move toward true asynchronous efficiency, teams must codify how information is shared and consumed:</p>
+<ul>
+<li>Document everything by default. If a decision wasn't written down, it didn't happen.</li>
+<li>Default to public channels. Private DMs are where context goes to die.</li>
+<li>Set clear expectations for response times. Not every ping is an emergency.</li>
+</ul>
+<p>Consider the structure of a typical status update. Instead of waiting for a meeting, a team might use a structured format in a shared document or specialized tool:</p>
+<pre><code># Team Update - Oct 24
+## Progress
+- Completed CI/CD pipeline migration
+- Refactored model selector component
+## Blockers
+- Waiting on API documentation for v2 endpoints</code></pre>
+<p class="mt-6">
+                Without these guardrails, the digital workspace becomes a chaotic stream of consciousness. Decisions are buried in threads, and context is lost to the scroll, which leaves people guessing about <span class="ghost-text" title="AI Suggestion (Press Tab to Accept)">whether a message needs a reply today or can wait until tomorrow.</span>
+</p>
+</article>
+</main>
+<!-- Interactivity Script -->
+<script>
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                const ghostText = document.querySelector('.ghost-text');
+                if (ghostText) {
+                    e.preventDefault();
+                    ghostText.style.color = '#1D1D1F';
+                    ghostText.classList.remove('ghost-text');
+                    ghostText.title = '';
+                }
+            }
+        });
+
+        // Simple Toggle interaction
+        const toggle = document.querySelector('.toggle-pill');
+        const dot = document.querySelector('.toggle-dot');
+        let isOn = true;
+
+        toggle.addEventListener('click', () => {
+            isOn = !isOn;
+            if (isOn) {
+                toggle.style.backgroundColor = '#1D1D1F';
+                dot.style.transform = 'translateX(0)';
+            } else {
+                toggle.style.backgroundColor = '#c7c6ca';
+                dot.style.transform = 'translateX(-14px)';
+            }
+        });
+    </script>
+</body></html>

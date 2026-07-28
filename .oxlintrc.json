@@ -1,0 +1,36 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "typescript", "oxc"],
+  "ignorePatterns": ["dist", "node_modules", ".tech-blueprint-probes"],
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/only-export-components": ["warn", { "allowConstantExport": true }],
+    "no-unused-vars": "error"
+  },
+  "overrides": [
+    {
+      "files": ["src/core/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "react",
+                  "react-dom",
+                  "react/*",
+                  "@codemirror/*",
+                  "zustand",
+                  "idb-keyval",
+                  "@floating-ui/*"
+                ],
+                "message": "src/core/ is the pure core: no DOM, no framework, no network. Inject what you need as a constructor argument instead - that is what makes the core testable with nothing running."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
