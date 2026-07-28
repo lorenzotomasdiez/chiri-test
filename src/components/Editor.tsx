@@ -14,6 +14,13 @@ const theme = EditorView.theme({
     padding: '2rem 0 40vh',
     caretColor: '#1D1D1F',
     WebkitFontSmoothing: 'antialiased',
+    // CodeMirror's base theme sets min-height: 100% so clicking blank space
+    // below the last line still focuses the editor. The writing column's
+    // host wrapper is intentionally taller than the visible viewport so a
+    // click far down the page still lands on it (CC-DOC surface); without
+    // this override that height would cascade onto .cm-content itself and
+    // the same click would force an unwanted viewport scroll.
+    minHeight: 'auto',
   },
   '.cm-line': { padding: '0', color: '#1D1D1F' },
   '.cm-activeLine': { backgroundColor: 'transparent' },

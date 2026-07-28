@@ -4,7 +4,10 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  server: { port: 5173 },
+  // strictPort so a busy 5173 fails loudly. Without it Vite silently moves to
+  // the next free port while Playwright keeps pointing at 5173, which means
+  // tests quietly run against whatever stale server got there first.
+  server: { port: 5173, strictPort: true },
   test: {
     // The pure core is the only thing Vitest runs. Anything touching an
     // EditorView goes to Playwright: probe 4 established that CM6 under jsdom

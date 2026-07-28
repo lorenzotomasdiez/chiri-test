@@ -39,7 +39,11 @@ test('T-CC-DOC-3: document surface typography is Inter 18px antialiased with ink
   const fontSmoothing = await page.locator('.cm-content').evaluate((el) => {
     return window.getComputedStyle(el).WebkitFontSmoothing
   })
-  expect(fontSmoothing).toBe('antialiased')
+  // -webkit-font-smoothing is non-standard: Blink and WebKit report the
+  // declared 'antialiased', Gecko normalises the same declaration to
+  // 'grayscale'. Both are the smoothed rendering CC-TYPE.6 asks for, so the
+  // assertion accepts either rather than failing Firefox for a vendor quirk.
+  expect(['antialiased', 'grayscale']).toContain(fontSmoothing)
 
   // CC-DOC.3: .cm-line line-height 31.5px (1.75 * 18px)
   const lineHeight = await page.locator('.cm-line').first().evaluate((el) => {

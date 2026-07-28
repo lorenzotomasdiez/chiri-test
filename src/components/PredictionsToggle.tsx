@@ -11,6 +11,7 @@ export function PredictionsToggle() {
   return (
     <button
       type="button"
+      tabIndex={0}
       aria-label="Predictions"
       aria-pressed={predictionsEnabled}
       onClick={togglePredictions}

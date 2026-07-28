@@ -77,6 +77,7 @@ export function ModelSelector() {
       <button
         ref={triggerRef}
         type="button"
+        tabIndex={0}
         data-testid="model-selector-trigger"
         aria-label={selected.displayName}
         aria-haspopup="listbox"
@@ -85,7 +86,7 @@ export function ModelSelector() {
         className="flex items-center gap-1 rounded px-1 text-[14px] text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
       >
         {selected.displayName}
-        <Icon name="expand_more" variant="text" className="text-outline text-[14px]" />
+        <Icon name="expand_more" className="text-outline text-[14px]" />
       </button>
 
       {isOpen && (

@@ -11,7 +11,11 @@ test('T-CC-MODEL-5: Model dropdown panel anatomy and selection (CC-MODEL.1, CC-M
 }) => {
   // CC-MODEL.1, CC-MODEL.2: Verify initial trigger state - shows model name in full ink, no slug, with expand_more caret
   const trigger = page.locator('[data-testid="model-selector-trigger"]')
-  await expect(trigger).toHaveText(/^GPT-4o mini\s*expand_more$/)
+  // The caret is a drawn glyph, not text: its name must never be readable on
+  // screen. So the trigger's text is the model name alone, and the caret is
+  // asserted as an element pointing at the expand_more sprite symbol.
+  await expect(trigger).toHaveText(/^GPT-4o mini$/)
+  await expect(trigger.locator('svg use[href$="#expand_more"]')).toHaveCount(1)
 
   // Verify trigger text color is full ink rgb(29, 29, 31)
   const triggerComputedColor = await trigger.evaluate((el) =>
@@ -134,7 +138,8 @@ test('T-CC-MODEL-5: Model dropdown panel anatomy and selection (CC-MODEL.1, CC-M
   await expect(panel).toHaveCount(0)
 
   // Verify trigger text becomes exactly 'GPT-4o'
-  await expect(trigger).toHaveText(/^GPT-4o\s*expand_more$/)
+  await expect(trigger).toHaveText(/^GPT-4o$/)
+  await expect(trigger.locator('svg use[href$="#expand_more"]')).toHaveCount(1)
 
   // Reopen the panel
   await trigger.click()

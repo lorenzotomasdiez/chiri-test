@@ -8,8 +8,10 @@ test.beforeEach(async ({ page }) => {
 test('T-CC-MODEL-12: Dropdown dismisses on Escape and outside click, returns focus to the trigger, and moves by arrow keys (CC-MODEL.12, CC-PANEL.5, CC-MODEL.13)', async ({
   page,
 }) => {
-  // Open the model selector by clicking the trigger
-  const trigger = page.locator('button:has-text("GPT-4o mini")')
+  // Located by role, not by its label: the whole point of this test is that the
+  // trigger's text changes, so a text-based locator would stop matching the
+  // moment the behaviour under test works.
+  const trigger = page.locator('button[aria-haspopup="listbox"]')
   await trigger.click()
 
   // Panel should be visible

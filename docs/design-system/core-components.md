@@ -93,6 +93,8 @@ CC-TYPE.5 Interface text uses tight letter spacing (`tracking-tight`).
 The wordmark uses tighter still (`tracking-tighter`).
 
 CC-TYPE.6 Font smoothing is antialiased.
+`-webkit-font-smoothing` is non-standard, and the browsers disagree on what they report back: Blink and WebKit echo the declared `antialiased`, while Gecko normalises it to `grayscale`.
+Both are the same smoothed rendering, so an automated check on this property must accept either value rather than treating Firefox as a failure.
 
 ### 1.3 Shape, hairlines, and elevation
 

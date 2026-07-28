@@ -23,7 +23,7 @@ export function TopBar() {
   }
 
   return (
-    <banner
+    <header
       role="banner"
       className="fixed top-0 left-0 z-10 flex h-12 w-full items-center justify-between border-b border-hairline bg-paper px-6"
       style={{ borderBottomColor: '#C7C6CA' }}
@@ -43,24 +43,26 @@ export function TopBar() {
         <div className="flex items-center gap-4">
           <button
             type="button"
+            tabIndex={0}
             aria-label="Copy"
             onClick={handleCopy}
             className="flex items-center gap-1.5 rounded text-[14px] text-ink opacity-70 transition-opacity duration-200 hover:opacity-100 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
-            <Icon name="content_copy" variant="text" className="text-[12px]" />
+            <Icon name="content_copy" className="text-[12px]" />
             {copied ? 'Copied' : 'Copy'}
           </button>
 
           <button
             type="button"
+            tabIndex={0}
             aria-label="Download .md"
             className="flex items-center gap-1.5 rounded text-[14px] text-ink opacity-70 transition-opacity duration-200 hover:opacity-100 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
-            <Icon name="download" variant="text" className="text-[12px]" />
+            <Icon name="download" className="text-[12px]" />
             Download .md
           </button>
         </div>
       </div>
-    </banner>
+    </header>
   )
 }

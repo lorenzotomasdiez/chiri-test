@@ -8,8 +8,10 @@ test.beforeEach(async ({ page }) => {
 test('T-CC-NAV-1: Top bar anatomy, control order, and labels (CC-BRAND.1, CC-BRAND.2, CC-BRAND.4, CC-NAV.4, CC-NAV.5, CC-NAV.7, CC-NAV.8, CC-ICON.2)', async ({
   page,
 }) => {
-  // Assert single banner landmark exists
-  const banners = page.locator('banner')
+  // Assert single banner landmark exists. Queried by ARIA role, not by tag
+  // name: the landmark is what NFR-6 requires, and a role query cannot be
+  // satisfied by inventing an element that has no role at all.
+  const banners = page.getByRole('banner')
   await expect(banners).toHaveCount(1)
   const banner = banners.first()
 
@@ -70,12 +72,14 @@ test('T-CC-NAV-1: Top bar anatomy, control order, and labels (CC-BRAND.1, CC-BRA
   expect(wordmarkElement.letterSpacing).not.toBe('0px')
   expect(wordmarkElement.color).toBe('rgb(29, 29, 31)')
 
-  // Assert no img or svg next to wordmark
-  const wordmarkParent = await wordmark.evaluate((el) => el.parentElement)
-  const siblingSvgs = await banner.locator('svg').count()
-  const siblingImgs = await banner.locator('img').count()
-  expect(siblingSvgs).toBe(0)
-  expect(siblingImgs).toBe(0)
+  // CC-BRAND.1/CC-BRAND.2: the brand is the word "Chiri" as text, with no icon
+  // or image lockup beside it. Scoped to the brand itself - the right-hand
+  // cluster must carry icons, because CC-NAV.7 requires Copy and Download to be
+  // icon plus label. Asserting zero <svg> across the whole bar would forbid the
+  // very thing CC-NAV.7 mandates.
+  const brand = banner.locator('[data-testid="wordmark"]').or(wordmark).first()
+  expect(await brand.locator('svg, img').count()).toBe(0)
+  expect(await banner.locator('img').count()).toBe(0)
 
   // Assert centre is empty - no title, breadcrumb, or menu items between wordmark and right cluster
   // We'll check that interactive controls are only on the right
