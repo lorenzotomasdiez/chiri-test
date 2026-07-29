@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { resolveModelId } from '../core/models'
 import { KeyGate, type KeyGateState } from '../core/keygate'
 import type { Failure } from '../core/provider'
-import { classifyRequestFailure, isAbort, type RequestFailureKind } from '../core/failure'
+import { classifyRequestFailure, isAbort } from '../core/failure'
 import { createSettingsHandle } from '../storage/settings'
 import { openRouterProbe } from '../net/openrouter'
 
@@ -48,7 +48,6 @@ export interface AppState {
    * (AC-12.1), and `reportRequestFailure` is not on its path.
    */
   requestFailureMessage: string | null
-  requestFailureKind: RequestFailureKind | null
   requestRetry: (() => void) | null
   /**
    * Classifies a thrown request failure and does the one right thing with it:
@@ -107,7 +106,6 @@ export const useAppStore = create<AppState>((set) => {
     apiKey: settingsHandle.settings.apiKey,
 
     requestFailureMessage: null,
-    requestFailureKind: null,
     requestRetry: null,
     reportRequestFailure: (error, retry) => {
       if (isAbort(error)) return
@@ -118,23 +116,21 @@ export const useAppStore = create<AppState>((set) => {
         // noise next to a modal saying the session's key no longer works, and
         // leaving it showing alongside the gate reads as two unrelated
         // problems when there is one.
-        set({ requestFailureMessage: null, requestFailureKind: null, requestRetry: null })
+        set({ requestFailureMessage: null, requestRetry: null })
         keyGate.revoke()
         syncGate()
         return
       }
       set({
         requestFailureMessage: failure.message,
-        requestFailureKind: failure.kind,
         requestRetry: retry,
       })
     },
-    clearRequestFailure: () =>
-      set({ requestFailureMessage: null, requestFailureKind: null, requestRetry: null }),
+    clearRequestFailure: () => set({ requestFailureMessage: null, requestRetry: null }),
     reportSilentFailure: (error) => {
       if (isAbort(error)) return
       if (!classifyRequestFailure(error).routesToKeyGate) return
-      set({ requestFailureMessage: null, requestFailureKind: null, requestRetry: null })
+      set({ requestFailureMessage: null, requestRetry: null })
       keyGate.revoke()
       syncGate()
     },
