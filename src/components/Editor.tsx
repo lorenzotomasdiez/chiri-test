@@ -282,6 +282,17 @@ export function Editor({
   // pending, since at most one revision is in flight at a time (AC-6.13).
   const [selection, setSelection] = useState<{ from: number; to: number } | null>(null)
   const [hasPendingRevision, setHasPendingRevision] = useState(false)
+  // AC-5.14: a shown continuation must be announced to assistive technology,
+  // not just operable by keyboard - the Tab/Mod-ArrowRight bindings in
+  // ghostText.ts already give a screen-reader user a way to accept or
+  // dismiss it, but nothing said the suggestion existed. A ghost widget
+  // painted inline in the contenteditable is not reliably announced on its
+  // own (CM6 renders it as a decoration, not a live-region update), so its
+  // presence is mirrored into this aria-live region instead. Plain
+  // aria-live, not role="status" - the app already uses role="status" to
+  // mean "something is loading" (the key-gate spinner, the refine-turn
+  // progress line), and this is neither.
+  const [ghostPresent, setGhostPresent] = useState(false)
 
   useEffect(() => {
     if (!host.current) return
@@ -375,6 +386,8 @@ export function Editor({
             }
             if (u.docChanged || u.transactions.some((tr) => tr.effects.length > 0)) {
               setHasPendingRevision(u.state.field(pendingSpanField, false) != null)
+              const ghost = u.state.field(ghostField, false)
+              setGhostPresent(ghost != null && ghost.text.length > 0)
             }
           }),
         ],
@@ -510,6 +523,16 @@ export function Editor({
         // it should.
         onClick={() => viewRef.current?.focus()}
       />
+      {/* AC-5.14: announces a shown continuation to assistive technology.
+          Visually hidden - the ghost widget itself carries the visible
+          treatment - and empty while nothing is shown, so it never fires on
+          mount or narrates every keystroke, only the moment a suggestion
+          becomes available. */}
+      <div aria-live="polite" className="sr-only" data-testid="ghost-announcer">
+        {ghostPresent
+          ? 'Suggestion available. Press Tab to accept, or keep typing to dismiss.'
+          : ''}
+      </div>
       {selection && !hasPendingRevision && viewRef.current && (
         // Keyed on the range itself: without this, jumping straight from one
         // non-empty selection to a different non-empty one (double-click a
