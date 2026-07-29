@@ -101,3 +101,24 @@ test('T-FR-12-13: Dismissing without retrying leaves the editor clean and askabl
   await page.locator('[data-testid="action-make-shorter"]').click()
   await expect(page.locator('[data-testid="failure-message"]')).toBeVisible({ timeout: 10_000 })
 })
+
+test('CC-BANNER.1/CC-BANNER.2: the banner uses the whisper shadow and an icon-only dismiss control', async ({
+  page,
+}) => {
+  // Given a revision failure message is visible
+  await mockFailure(page, 'offline')
+  await askForRevision(page)
+  const banner = page.locator('[data-testid="failure-message"]')
+  await expect(banner).toBeVisible({ timeout: 10_000 })
+
+  // CC-SHAPE.3/CC-PANEL.2: the only permitted shadow is the 0.02-alpha
+  // "whisper" - never a stronger drop shadow used for elevation.
+  const boxShadow = await banner.evaluate((el) => getComputedStyle(el).boxShadow)
+  expect(boxShadow).toContain('0.02)')
+
+  // CC-BANNER.2: the second action is a close icon button, not a text label.
+  const dismissButton = page.locator('[data-testid="dismiss-button"]')
+  await expect(dismissButton).toHaveAccessibleName('Dismiss')
+  expect((await dismissButton.innerText()).trim()).toBe('')
+  await expect(dismissButton.locator('svg')).toHaveCount(1)
+})
