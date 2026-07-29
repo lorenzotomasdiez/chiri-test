@@ -86,16 +86,18 @@ test('T-CC-TOGGLE-1: Predictions toggle is a real button whose knob carries the 
   // CC-TOGGLE.6: aria-pressed becomes "false"
   await expect(toggleButton).toHaveAttribute('aria-pressed', 'false')
 
-  // CC-TOGGLE.3, CC-TOGGLE.5: Fill becomes hairline colour rgb(199, 198, 202)
-  const fillColorOff = await pill.evaluate(el => window.getComputedStyle(el).backgroundColor)
-  expect(fillColorOff).toBe('rgb(199, 198, 202)')
+  // CC-TOGGLE.4/CC-MOTION.5: the fill and knob slide/cross-fade over 200ms
+  // rather than jumping, so their final state is read after the transition
+  // settles instead of synchronously on the click.
+  await expect(pill).toHaveCSS('background-color', 'rgb(199, 198, 202)')
 
   // Recalculate knob position after toggle
-  const knobBoxAfter = await knob.boundingBox()
-  const knobCentreXAfter = knobBoxAfter!.x + knobBoxAfter!.width / 2
-
-  // When off, knob centre x < pill centre x (knob on the left)
-  expect(knobCentreXAfter).toBeLessThan(pillCentreX)
+  await expect
+    .poll(async () => {
+      const box = await knob.boundingBox()
+      return box!.x + box!.width / 2
+    })
+    .toBeLessThan(pillCentreX)
 
   // CC-TOGGLE.7: Text is unchanged
   expect(await docText(page)).toBe(textBefore)
@@ -112,4 +114,29 @@ test('T-CC-TOGGLE-1: Predictions toggle is a real button whose knob carries the 
 
   expect(colorAfter).toBe(colorBefore)
   expect(fontSizeAfter).toBe(fontSizeBefore)
+})
+
+test('T-CC-TOGGLE-8: knob and fill are wired to actually animate, not jump straight to the end state', async ({
+  page,
+}) => {
+  const toggleButton = page.getByRole('button', { name: /Predictions/ })
+  const pill = toggleButton.locator('div').first()
+  const knob = toggleButton.locator('div').nth(1)
+
+  // CC-TOGGLE.4/CC-MOTION.5: the property that actually changes (the fill's
+  // background-color, the knob's left offset) must be the one transitioning -
+  // declaring transitionProperty: none while only the duration is set (as a
+  // prior version of this component did) means nothing ever animates, even
+  // though a computed transitionDuration check alone would not catch it.
+  const pillTransitionProperty = await pill.evaluate(
+    el => window.getComputedStyle(el).transitionProperty,
+  )
+  expect(pillTransitionProperty).not.toBe('none')
+  expect(pillTransitionProperty).toContain('background-color')
+
+  const knobTransitionProperty = await knob.evaluate(
+    el => window.getComputedStyle(el).transitionProperty,
+  )
+  expect(knobTransitionProperty).not.toBe('none')
+  expect(knobTransitionProperty).toContain('left')
 })

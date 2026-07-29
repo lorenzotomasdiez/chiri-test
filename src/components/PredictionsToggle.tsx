@@ -25,12 +25,10 @@ export function PredictionsToggle() {
           borderRadius: 9999,
           position: 'relative',
           backgroundColor: predictionsEnabled ? '#1D1D1F' : '#C7C6CA',
-          // The fill and knob position must read correctly the instant the
-          // click resolves (assertions run synchronously with no wait), so
-          // the property that actually changes is not what transitions.
-          // The 0.2s duration is still declared so CC-TOGGLE.4's computed
-          // transitionDuration check holds.
-          transitionProperty: 'none',
+          // CC-TOGGLE.4/CC-MOTION.5: the fill cross-fades over 200ms. The
+          // reduced-motion media rule in index.css collapses this duration
+          // globally, so no separate branch is needed here.
+          transitionProperty: 'background-color',
           transitionDuration: '0.2s',
         }}
       >
@@ -43,7 +41,9 @@ export function PredictionsToggle() {
             height: 12,
             borderRadius: 9999,
             backgroundColor: '#FFFFFF',
-            transitionProperty: 'none',
+            // CC-TOGGLE.4/CC-MOTION.5: the knob slides over 200ms; it never
+            // jumps.
+            transitionProperty: 'left',
             transitionDuration: '0.2s',
           }}
         />
