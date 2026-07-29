@@ -451,12 +451,13 @@ export function Editor({
         <SelectionActionBar view={viewRef.current} from={selection.from} to={selection.to} />
       )}
       {/* FR-12's visible half (AC-12.2): every requested failure - a revision
-          or a refinement - surfaces here, dismissible and retryable. Rendered
-          alongside the document rather than over it, so AC-12.1's sibling
-          promise holds too: typing carries on underneath while it is showing
-          (T-FR-12-15). */}
+          or a refinement - surfaces here, dismissible and retryable. CC-BANNER.4
+          renders it in document flow beneath the editor rather than over it,
+          so AC-12.1's sibling promise holds too: typing carries on underneath
+          while it is showing (T-FR-12-15). */}
       {requestFailureMessage && (
         <FailureBanner
+          inline
           message={requestFailureMessage}
           onRetry={() => {
             const retry = requestRetry

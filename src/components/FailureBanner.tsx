@@ -4,6 +4,17 @@ interface FailureBannerProps {
   message: string
   onRetry: () => void
   onDismiss: () => void
+  /**
+   * CC-BANNER.4 requires a banner to sit in the document flow directly
+   * beneath the span it refers to, pushing text down rather than overlaying
+   * it - true for Editor's revision-failure banner, which has room to grow
+   * in flow beneath the document. TopBar's clipboard-failure banner instead
+   * renders as a fixed corner overlay: TopBar is a fixed-height header that
+   * cannot grow to push <main> down without also changing <main>'s
+   * hardcoded top offset, so it keeps the overlay treatment until that
+   * layout is revisited.
+   */
+  inline?: boolean
 }
 
 /**
@@ -13,12 +24,16 @@ interface FailureBannerProps {
  * this is the generic shape, so any other failing async action in the shell
  * can reuse it instead of inlining its own.
  */
-export function FailureBanner({ message, onRetry, onDismiss }: FailureBannerProps) {
+export function FailureBanner({ message, onRetry, onDismiss, inline = false }: FailureBannerProps) {
   return (
     <div
       data-testid="failure-message"
       role="alert"
-      className="fixed top-14 right-6 z-30 flex items-center gap-3 rounded border border-hairline/30 bg-paper px-4 py-3 text-[14px] text-error shadow-[0_4px_32px_rgba(0,0,0,0.08)]"
+      className={
+        inline
+          ? 'relative mt-4 flex items-center gap-3 rounded border border-hairline/30 bg-paper px-4 py-3 text-[14px] text-error shadow-[0_4px_32px_rgba(0,0,0,0.08)]'
+          : 'fixed top-14 right-6 z-30 flex items-center gap-3 rounded border border-hairline/30 bg-paper px-4 py-3 text-[14px] text-error shadow-[0_4px_32px_rgba(0,0,0,0.08)]'
+      }
     >
       <Icon name="error" className="shrink-0 text-error" />
       <span>{message}</span>
