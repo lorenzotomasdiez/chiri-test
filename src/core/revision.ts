@@ -144,6 +144,19 @@ export interface SpanValidationDeclined {
   documentText: string
 }
 
+/**
+ * AC-6.4/T-FR-6-19: the model read the span and judged no change was
+ * warranted. Distinct from `declined` (a response we refuse to trust) - an
+ * unchanged result is trustworthy, it just carries nothing to show, so no
+ * pending revision is created and the lifecycle stays Idle rather than
+ * entering Pending with a no-op diff.
+ */
+export interface SpanValidationUnchanged {
+  kind: 'unchanged'
+  accepted: false
+  documentText: string
+}
+
 export interface SpanValidationAccepted {
   kind: 'accepted'
   accepted: true
@@ -151,7 +164,10 @@ export interface SpanValidationAccepted {
   pending: Revision
 }
 
-export type SpanValidationResult = SpanValidationDeclined | SpanValidationAccepted
+export type SpanValidationResult =
+  | SpanValidationDeclined
+  | SpanValidationUnchanged
+  | SpanValidationAccepted
 
 /**
  * The out-of-span containment check (AC-6.9): a response that reads as a
@@ -168,6 +184,10 @@ export function validateResponseSpan(
   const selectedText = documentText.slice(from, to)
   const trimmedResponse = response.trim()
   const budget = selectedText.length * MAX_RESPONSE_RATIO + MAX_RESPONSE_SLACK
+
+  if (trimmedResponse === selectedText.trim()) {
+    return { kind: 'unchanged', accepted: false, documentText }
+  }
 
   if (mentionsTextOutsideSpan(documentText, from, to, trimmedResponse)) {
     return { kind: 'declined', accepted: false, documentText }

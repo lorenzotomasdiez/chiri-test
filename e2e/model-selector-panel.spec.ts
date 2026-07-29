@@ -173,3 +173,21 @@ test('T-CC-MODEL-5: Model dropdown panel anatomy and selection (CC-MODEL.1, CC-M
   const checkIconRow1 = row1Reopened.locator('[data-testid="check-icon"]')
   await expect(checkIconRow1).toHaveCount(0)
 })
+
+test('T-CC-MODEL-14: Trigger hover affordance (CC-MODEL.3)', async ({ page }) => {
+  const trigger = page.locator('[data-testid="model-selector-trigger"]')
+  const caret = trigger.locator('svg')
+
+  // At rest: no container fill behind the trigger, and the caret sits at
+  // reduced opacity (CC-MODEL.1's "outline color at reduced opacity").
+  const restBgColor = await trigger.evaluate((el) => window.getComputedStyle(el).backgroundColor)
+  expect(restBgColor).toBe('rgba(0, 0, 0, 0)')
+  const restCaretOpacity = await caret.evaluate((el) => window.getComputedStyle(el).opacity)
+  expect(Number(restCaretOpacity)).toBeCloseTo(0.7, 1)
+
+  // On hover: a subtle container fill appears behind the trigger and the
+  // caret comes to full opacity.
+  await trigger.hover()
+  await expect(trigger).toHaveCSS('background-color', 'rgb(241, 237, 236)')
+  await expect(caret).toHaveCSS('opacity', '1')
+})
