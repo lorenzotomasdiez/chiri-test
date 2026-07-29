@@ -35,9 +35,9 @@ export function FailureBanner({ message, onRetry, onDismiss }: FailureBannerProp
         data-testid="dismiss-button"
         aria-label="Dismiss"
         onClick={onDismiss}
-        className="rounded text-[14px] text-muted/60 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        className="shrink-0 rounded text-muted/80 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
       >
-        Dismiss
+        <Icon name="close" className="h-4 w-4" />
       </button>
     </div>
   )
