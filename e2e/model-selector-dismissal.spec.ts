@@ -46,10 +46,16 @@ test('T-CC-MODEL-12: Dropdown dismisses on Escape and outside click, returns foc
   await page.keyboard.press('ArrowDown')
   await page.keyboard.press('ArrowDown')
 
-  // Verify the third row is highlighted
+  // Verify the third row is highlighted (container fill), but not yet
+  // committed as the selection - aria-selected must track the committed
+  // choice, not transient keyboard highlight (WAI-ARIA listbox semantics).
   const options = page.locator('div[role="option"]')
   const thirdOption = options.nth(2)
-  await expect(thirdOption).toHaveAttribute('aria-selected', 'true')
+  await expect(thirdOption).toHaveAttribute('aria-selected', 'false')
+  const thirdOptionBgColor = await thirdOption.evaluate(
+    (el) => window.getComputedStyle(el).backgroundColor,
+  )
+  expect(thirdOptionBgColor).toBe('rgb(241, 237, 236)') // container fill color #F1EDEC
 
   // Press Enter to select
   await page.keyboard.press('Enter')
