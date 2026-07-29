@@ -60,7 +60,7 @@ export function TopBar() {
   return (
     <header
       role="banner"
-      className="fixed top-0 left-0 z-10 flex h-12 w-full items-center justify-between border-b border-hairline bg-paper px-6"
+      className="shell-fade-topbar fixed top-0 left-0 z-10 flex h-12 w-full items-center justify-between border-b border-hairline bg-paper px-6"
       style={{ borderBottomColor: '#C7C6CA' }}
     >
       <span className="select-none text-[18px] font-semibold tracking-tight text-ink">Chiri</span>
