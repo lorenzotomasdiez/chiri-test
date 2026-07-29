@@ -12,12 +12,11 @@ export default defineConfig({
     video: 'off',
   },
   projects: [
-    // FR-9's clipboard specs read navigator.clipboard.readText() back in the
-    // page to assert what Copy wrote; Chromium's clipboard-read permission is
-    // not granted to a context by default, so it is granted here rather than
-    // in each spec (Firefox and WebKit do not support granting it the same
-    // way, so it is scoped to this project only).
-    { name: 'chromium', use: { ...devices['Desktop Chrome'], permissions: ['clipboard-read', 'clipboard-write'] } },
+    // FR-9's clipboard specs stub navigator.clipboard in-page (see
+    // e2e/clipboard.ts) rather than relying on OS/browser clipboard
+    // permissions, which Chromium, Firefox and WebKit each grant
+    // differently (or not at all) under test automation.
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
   ],
