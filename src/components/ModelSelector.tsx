@@ -113,7 +113,7 @@ export function ModelSelector() {
             width: 288,
             backgroundColor: '#FFFFFF',
             borderRadius: 8,
-            border: '1px solid #C7C6CA',
+            border: '1px solid rgb(199 198 202 / 0.3)',
           }}
         >
           {MODELS.map((model, index) => {
