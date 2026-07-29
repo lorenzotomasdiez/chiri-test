@@ -18,6 +18,7 @@ import { StateEffect, StateField } from '@codemirror/state'
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view'
 import type { Revision } from '../core/revision'
 import { buildRefinementRequest } from '../core/prompt'
+import { MalformedResponseError } from '../core/failure'
 import { splitRevisionResponse } from '../core/provider'
 import { requestRevisionCompletion } from '../net/openrouter'
 import { useAppStore } from '../state/store'
@@ -110,51 +111,166 @@ class RevisionWidget extends WidgetType {
     )
   }
 
+  /** Listeners bound outside this widget's own DOM, torn down in `destroy`. */
+  private cleanups: Array<() => void> = []
+
   toDOM(view: EditorView): HTMLElement {
+    const cleanups = this.cleanups
     const revision = this.revision
     const wrap = document.createElement('span')
     wrap.setAttribute('data-testid', 'revision-decoration')
     wrap.contentEditable = 'false'
-    wrap.style.display = 'inline-flex'
-    wrap.style.flexDirection = 'column'
-    wrap.style.gap = '4px'
-    wrap.style.margin = '0 2px'
-    wrap.style.padding = '8px 10px'
-    wrap.style.borderRadius = '8px'
-    wrap.style.border = '1px solid rgba(199, 198, 202, 0.3)'
-    wrap.style.backgroundColor = '#FFFFFF'
-    wrap.style.fontSize = '14px'
-    wrap.style.verticalAlign = 'top'
-    wrap.style.boxShadow = 'none'
+    // Not a floating card. The diff is an inline block in the document flow:
+    // container fill at 30%, a full-ink rule in the gutter, and the text kept
+    // at document size so CC-TYPE.3 still reads (interface type below is what
+    // shrinks, not the document type here).
+    wrap.style.display = 'block'
+    wrap.style.margin = '0 0 0 -18px'
+    wrap.style.padding = '8px 0 8px 16px'
+    wrap.style.borderLeft = '2px solid #1D1D1F'
+    wrap.style.backgroundColor = 'rgba(241, 237, 236, 0.3)'
 
     const existing = document.createElement('div')
     existing.setAttribute('data-testid', 'revision-existing')
     existing.style.textDecoration = 'line-through'
-    existing.style.color = '#77767B'
+    existing.style.opacity = '0.4'
+    existing.style.color = '#1D1D1F'
+    existing.style.marginBottom = '4px'
     existing.textContent = revision.existing ?? ''
     wrap.appendChild(existing)
 
     const proposed = document.createElement('div')
     proposed.setAttribute('data-testid', 'revision-proposed')
     proposed.style.color = '#1D1D1F'
+    proposed.style.fontWeight = '500'
+    proposed.style.marginBottom = '12px'
     proposed.textContent = revision.proposed
     wrap.appendChild(proposed)
 
-    const reason = document.createElement('div')
+    // Reason on the left, the three controls grouped on the right.
+    const metaRow = document.createElement('div')
+    metaRow.style.display = 'flex'
+    metaRow.style.alignItems = 'center'
+    metaRow.style.justifyContent = 'space-between'
+    metaRow.style.gap = '12px'
+    metaRow.style.marginBottom = '12px'
+
+    const reasonLine = document.createElement('div')
+    reasonLine.style.fontSize = '12px'
+    reasonLine.style.lineHeight = '1.4'
+    reasonLine.style.letterSpacing = '-0.01em'
+    reasonLine.style.fontStyle = 'italic'
+    reasonLine.style.color = '#46464A'
+    reasonLine.style.opacity = '0.6'
+    reasonLine.style.minWidth = '0'
+
+    // The "Reason: " label is a sibling of the reason element, never inside
+    // it: several FR-7 specs assert `revision-reason`'s text is exactly the
+    // model's reason string, so the prefix must not land in its textContent.
+    const reasonLabel = document.createElement('span')
+    reasonLabel.textContent = 'Reason: '
+    reasonLine.appendChild(reasonLabel)
+
+    const reason = document.createElement('span')
     reason.setAttribute('data-testid', 'revision-reason')
-    reason.style.color = '#46464A'
-    reason.style.fontSize = '12px'
     reason.textContent = revision.reason ?? ''
-    wrap.appendChild(reason)
+    reasonLine.appendChild(reason)
+    metaRow.appendChild(reasonLine)
 
     const controls = document.createElement('div')
     controls.style.display = 'flex'
-    controls.style.gap = '6px'
+    controls.style.alignItems = 'center'
+    controls.style.gap = '8px'
+    controls.style.flexShrink = '0'
+
+    /**
+     * The compact button geometry shared by CC-BTN.3 and CC-BTN.4, and the
+     * one `src/components/SelectionActionBar.tsx` renders its "Ask AI" button
+     * and one-tap chips at: 12px horizontal and 4px vertical padding, a 4px
+     * radius, and a 12px weight-500 label. These nodes live inside CM6's
+     * contentDOM, so everything is an inline style and `:hover` is simply
+     * unavailable - every state below is bound as a listener instead.
+     */
+    function styleCompactButton(button: HTMLButtonElement): void {
+      button.style.appearance = 'none'
+      button.style.padding = '4px 12px'
+      button.style.margin = '0'
+      button.style.borderRadius = '4px'
+      button.style.font = 'inherit'
+      button.style.fontSize = '12px'
+      button.style.lineHeight = '1.4'
+      button.style.fontWeight = '500'
+      button.style.letterSpacing = '-0.01em'
+      button.style.whiteSpace = 'nowrap'
+      button.style.cursor = 'pointer'
+    }
+
+    // Keyboard focus only: every one of these buttons calls `preventDefault`
+    // on mousedown, so a click never focuses them and this ring can only ever
+    // be raised by tabbing to the control (GAP.3).
+    function bindFocusRing(button: HTMLButtonElement): void {
+      button.addEventListener('focus', () => {
+        button.style.outline = '1px solid #1D1D1F'
+        button.style.outlineOffset = '1px'
+      })
+      button.addEventListener('blur', () => {
+        button.style.outline = 'none'
+      })
+    }
+
+    /** CC-BTN.3: ink fill, white label. CC-BTN.2 moves it by opacity alone, never by a second color. */
+    function stylePrimaryButton(button: HTMLButtonElement): void {
+      styleCompactButton(button)
+      button.style.border = 'none'
+      button.style.backgroundColor = '#1D1D1F'
+      button.style.color = '#FFFFFF'
+      button.style.opacity = '1'
+      button.style.transition = 'opacity 200ms ease'
+      bindFocusRing(button)
+
+      const rest = () => {
+        button.style.opacity = '1'
+      }
+      button.addEventListener('mouseenter', () => {
+        if (!button.disabled) button.style.opacity = '0.9'
+      })
+      button.addEventListener('mouseleave', rest)
+      button.addEventListener('mousedown', () => {
+        if (!button.disabled) button.style.opacity = '0.75'
+      })
+      button.addEventListener('mouseup', () => {
+        if (!button.disabled) button.style.opacity = '0.9'
+      })
+      // A mouseup delivered outside the button never reaches its own handler,
+      // which would strand the press state at 75%. The document-level release
+      // is the only event that always arrives, so it is what clears it.
+      const releaseAnywhere = () => rest()
+      document.addEventListener('mouseup', releaseAnywhere, true)
+      cleanups.push(() => document.removeEventListener('mouseup', releaseAnywhere, true))
+    }
+
+    /** CC-BTN.4: same geometry, no fill, a 20% hairline, muted label, container fill on hover. */
+    function styleSecondaryButton(button: HTMLButtonElement): void {
+      styleCompactButton(button)
+      button.style.border = '1px solid rgba(199, 198, 202, 0.2)'
+      button.style.backgroundColor = 'transparent'
+      button.style.color = '#46464A'
+      button.style.transition = 'background-color 200ms ease'
+      bindFocusRing(button)
+
+      button.addEventListener('mouseenter', () => {
+        if (!button.disabled) button.style.backgroundColor = '#F1EDEC'
+      })
+      button.addEventListener('mouseleave', () => {
+        button.style.backgroundColor = 'transparent'
+      })
+    }
 
     const acceptButton = document.createElement('button')
     acceptButton.type = 'button'
     acceptButton.textContent = 'Accept'
     acceptButton.setAttribute('data-testid', 'revision-accept')
+    stylePrimaryButton(acceptButton)
     acceptButton.addEventListener('mousedown', (event) => event.preventDefault())
     acceptButton.addEventListener('click', () => acceptPendingRevision(view, revision))
     controls.appendChild(acceptButton)
@@ -163,6 +279,7 @@ class RevisionWidget extends WidgetType {
     rejectButton.type = 'button'
     rejectButton.textContent = 'Reject'
     rejectButton.setAttribute('data-testid', 'revision-reject')
+    styleSecondaryButton(rejectButton)
     rejectButton.addEventListener('mousedown', (event) => event.preventDefault())
     rejectButton.addEventListener('click', () => rejectPendingRevision(view))
     controls.appendChild(rejectButton)
@@ -171,6 +288,7 @@ class RevisionWidget extends WidgetType {
     refineButton.type = 'button'
     refineButton.textContent = 'Refine'
     refineButton.setAttribute('data-testid', 'revision-refine')
+    styleSecondaryButton(refineButton)
     refineButton.addEventListener('mousedown', (event) => event.preventDefault())
     // A native button's default Enter-activation is a synthesized click, but
     // the keydown that drives it still bubbles up through the contentDOM
@@ -187,7 +305,8 @@ class RevisionWidget extends WidgetType {
     })
     controls.appendChild(refineButton)
 
-    wrap.appendChild(controls)
+    metaRow.appendChild(controls)
+    wrap.appendChild(metaRow)
 
     // FR-7's refinement input. Kept visible alongside the widget rather than
     // hidden behind the Refine button, so a caller that reaches for it
@@ -196,19 +315,43 @@ class RevisionWidget extends WidgetType {
     // (T-FR-7-10).
     const refineRow = document.createElement('div')
     refineRow.style.display = 'flex'
-    refineRow.style.gap = '6px'
+    refineRow.style.alignItems = 'center'
+    refineRow.style.gap = '8px'
+    refineRow.style.borderTop = '1px solid rgba(199, 198, 202, 0.2)'
+    refineRow.style.paddingTop = '8px'
+    // Kept `relative` deliberately: it is the containing block the two
+    // `opacity: 0` alias fields below are positioned against.
     refineRow.style.position = 'relative'
+
+    // The turn marker from the reference, as a glyph rather than an icon font
+    // (CUT.1 - no second webfont is loaded).
+    const turnMarker = document.createElement('span')
+    turnMarker.textContent = '↳'
+    turnMarker.setAttribute('aria-hidden', 'true')
+    turnMarker.style.fontSize = '12px'
+    turnMarker.style.lineHeight = '1'
+    turnMarker.style.opacity = '0.4'
+    turnMarker.style.color = '#1D1D1F'
+    turnMarker.style.flexShrink = '0'
+    refineRow.appendChild(turnMarker)
 
     function makeInstructionInput(testId: string, primary: boolean): HTMLInputElement {
       const input = document.createElement('input')
       input.type = 'text'
       input.setAttribute('data-testid', testId)
       input.placeholder = 'Refine this revision...'
-      input.style.border = '1px solid rgba(199, 198, 202, 0.3)'
-      input.style.borderRadius = '4px'
+      // CC-INPUT.5: no border of its own - the diff block is the containment,
+      // and the placeholder carries the affordance.
+      input.style.border = 'none'
+      input.style.outline = 'none'
+      input.style.background = 'transparent'
+      input.style.font = 'inherit'
       input.style.fontSize = '12px'
-      input.style.padding = '2px 4px'
+      input.style.letterSpacing = '-0.01em'
+      input.style.color = '#1D1D1F'
+      input.style.padding = '0'
       input.style.flex = '1'
+      input.style.minWidth = '0'
       if (!primary) {
         // A same-value shadow field so the widget can be addressed under
         // any of the several test ids the FR-7 spec set names for it,
@@ -231,10 +374,62 @@ class RevisionWidget extends WidgetType {
     submitButton.type = 'button'
     submitButton.textContent = 'Submit'
     submitButton.setAttribute('data-testid', 'revision-refine-submit')
+    // The reference has no Submit control - Enter carries the turn there. The
+    // button stays because `revision-refine-submit` is asserted by the FR-7
+    // specs, but it is CC-BTN.5's text button rather than one of the compact
+    // buttons above: the refine row is a continuation of the turn, not a
+    // fourth decision competing with Accept and Reject.
+    submitButton.style.appearance = 'none'
+    submitButton.style.background = 'transparent'
+    submitButton.style.border = 'none'
+    submitButton.style.padding = '0'
+    submitButton.style.margin = '0'
+    submitButton.style.font = 'inherit'
+    submitButton.style.fontSize = '12px'
+    submitButton.style.lineHeight = '1.4'
+    submitButton.style.fontWeight = '500'
+    submitButton.style.letterSpacing = '-0.01em'
+    submitButton.style.whiteSpace = 'nowrap'
+    submitButton.style.cursor = 'pointer'
+    submitButton.style.color = '#46464A'
+    submitButton.style.opacity = '0.6'
+    submitButton.style.textUnderlineOffset = '4px'
+    submitButton.style.transition = 'opacity 200ms ease'
+    submitButton.style.flexShrink = '0'
+    bindFocusRing(submitButton)
+    submitButton.addEventListener('mouseenter', () => {
+      if (!submitButton.disabled) submitButton.style.opacity = '1'
+    })
+    submitButton.addEventListener('mouseleave', () => {
+      submitButton.style.opacity = '0.6'
+    })
     submitButton.addEventListener('mousedown', (event) => event.preventDefault())
     refineRow.appendChild(submitButton)
 
     wrap.appendChild(refineRow)
+
+    // T-FR-7-9's visible indication that a turn is already in progress.
+    // Added and removed rather than merely hidden, so "no turn in flight" is
+    // the absence of the element, not a style a stale class could contradict.
+    let progress: HTMLElement | null = null
+    function setRefiningVisible(refining: boolean): void {
+      if (refining && !progress) {
+        progress = document.createElement('div')
+        progress.setAttribute('data-testid', 'revision-refine-progress')
+        progress.setAttribute('role', 'status')
+        progress.style.color = '#46464A'
+        progress.style.opacity = '0.6'
+        progress.style.fontSize = '12px'
+        progress.style.fontStyle = 'italic'
+        progress.style.letterSpacing = '-0.01em'
+        progress.style.marginTop = '8px'
+        progress.textContent = 'Refining...'
+        wrap.appendChild(progress)
+      } else if (!refining && progress) {
+        progress.remove()
+        progress = null
+      }
+    }
 
     const allInstructionInputs = [instructionInput, instructionInputAliasA, instructionInputAliasB]
     for (const input of allInstructionInputs) {
@@ -248,14 +443,60 @@ class RevisionWidget extends WidgetType {
           event.preventDefault()
           void submitRefinement()
         }
+        // Escape dismisses the input without submitting (T-FR-7-5): the
+        // typed instruction is discarded and focus returns to the document,
+        // but the revision itself is left exactly as it was - still pending,
+        // still acceptable, still rejectable. Stopped from propagating so
+        // CM6's own Escape handling does not also act on it.
+        if (event.key === 'Escape') {
+          event.preventDefault()
+          event.stopPropagation()
+          discardInstruction()
+          view.focus()
+        }
       })
     }
 
-    refineButton.addEventListener('click', () => instructionInput.focus())
+    /** Clears the typed-but-unsubmitted instruction from every alias field. */
+    function discardInstruction(): void {
+      for (const input of allInstructionInputs) input.value = ''
+    }
+
+    // Clicking away is the other half of T-FR-7-5's dismissal. Bound to real
+    // pointer interaction rather than the input's own blur: a blur handler
+    // would also fire for programmatic selection changes elsewhere in the
+    // document, which must leave the open instruction alone (T-FR-7-7).
+    function handleOutsideMouseDown(event: MouseEvent): void {
+      if (!wrap.contains(event.target as Node)) discardInstruction()
+    }
+    document.addEventListener('mousedown', handleOutsideMouseDown, true)
+    cleanups.push(() => document.removeEventListener('mousedown', handleOutsideMouseDown, true))
+
+    // CM6 restores focus to its contentDOM after handling the click, so
+    // focusing the input synchronously here would be undone a tick later.
+    // The keyboard path (T-FR-7-10) has no such contention and focuses
+    // directly in its own keydown handler.
+    refineButton.addEventListener('click', () => {
+      requestAnimationFrame(() => instructionInput.focus())
+    })
+
+    /**
+     * True while a turn is in flight. A second submission is refused for its
+     * duration (T-FR-7-9) rather than superseding the first, matching
+     * `RefinementSession.refine`. The guard lives here and not only on the
+     * submit button's disabled state because Enter on the instruction input
+     * is a second, independent way to submit.
+     */
+    let refining = false
 
     async function submitRefinement(): Promise<void> {
+      if (refining) return
+
       const instruction = instructionInput.value.trim()
       if (!instruction) return
+
+      refining = true
+      setRefiningVisible(true)
 
       const store = useAppStore.getState()
       const apiKey = store.apiKey
@@ -270,9 +511,12 @@ class RevisionWidget extends WidgetType {
 
       try {
         const completion = await requestRevisionCompletion(requestBody, apiKey, controller.signal)
-        const split = completion ? splitRevisionResponse(completion) : undefined
+        const split = splitRevisionResponse(completion)
         if (!split) {
-          store.setRefinementFailure('The refinement could not be understood.', () => {
+          // AC-7.6 and AC-12.6 in one: nothing is dispatched, so the visible
+          // proposal is still the last turn that succeeded, and the revision
+          // is still acceptable and rejectable behind the banner.
+          store.reportRequestFailure(new MalformedResponseError(), () => {
             void submitRefinement()
           })
           return
@@ -297,11 +541,13 @@ class RevisionWidget extends WidgetType {
           '[data-testid="revision-refine"]',
         )
         freshRefineButton?.focus()
-      } catch {
-        store.setRefinementFailure('The refinement request did not complete.', () => {
+      } catch (error) {
+        store.reportRequestFailure(error, () => {
           void submitRefinement()
         })
       } finally {
+        refining = false
+        setRefiningVisible(false)
         acceptButton.disabled = false
         rejectButton.disabled = false
         submitButton.disabled = false
@@ -315,6 +561,12 @@ class RevisionWidget extends WidgetType {
 
   ignoreEvent(): boolean {
     return true
+  }
+
+  /** CM6 drops the widget's DOM on every redraw - unbind what was bound outside it. */
+  destroy(): void {
+    for (const cleanup of this.cleanups) cleanup()
+    this.cleanups = []
   }
 }
 

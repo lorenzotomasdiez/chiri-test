@@ -1,4 +1,5 @@
 import type { ProbeTransport } from '../core/keygate'
+import { MalformedResponseError } from '../core/failure'
 import { buildContinuationRequest, type RequestBody } from '../core/prompt'
 import { createCompletionStreamDecoder } from '../core/provider'
 import type { DispatchedRequest, Transport } from '../core/schedule'
@@ -95,7 +96,7 @@ export async function requestRevisionCompletion(
   if (!response.body) {
     emit(decoder.push(await response.text()))
     emit(decoder.flush())
-    return completion
+    return finishCompletion(completion, decoder.sawTerminator())
   }
 
   const reader = response.body.getReader()
@@ -117,6 +118,24 @@ export async function requestRevisionCompletion(
     reader.releaseLock()
   }
 
+  return finishCompletion(completion, decoder.sawTerminator())
+}
+
+/**
+ * AC-12.6's boundary between a short answer and a cut-off one. A connection
+ * that closed before the provider signalled completion did not deliver a
+ * response, however much prose arrived first - so the caller is handed a
+ * failure rather than a partial string it would otherwise render as a
+ * finished proposal (T-FR-12-11). An empty completion is the same failure by
+ * a different route: nothing usable arrived.
+ */
+function finishCompletion(completion: string, terminated: boolean): string {
+  if (!terminated) {
+    throw new MalformedResponseError('The response ended before it was complete.')
+  }
+  if (!completion.trim()) {
+    throw new MalformedResponseError('The response carried no content.')
+  }
   return completion
 }
 
@@ -173,6 +192,14 @@ export function createContinuationTransport(options: {
     if (!response.body) {
       const text = decoder.push(await response.text()) + decoder.flush()
       if (text) yield text
+      // Same rule as the revision path: a stream that stopped before the
+      // provider said it was finished is a failed request (AC-12.6), not a
+      // short continuation. The Scheduler resolves that failure to silence
+      // for this class, so the user still sees nothing - but a truncated
+      // half-sentence is never offered as if it were a whole suggestion.
+      if (!decoder.sawTerminator()) {
+        throw new MalformedResponseError('The response ended before it was complete.')
+      }
       return
     }
 
@@ -192,6 +219,10 @@ export function createContinuationTransport(options: {
       if (flushed) yield flushed
     } finally {
       reader.releaseLock()
+    }
+
+    if (!decoder.sawTerminator()) {
+      throw new MalformedResponseError('The response ended before it was complete.')
     }
   }
 }

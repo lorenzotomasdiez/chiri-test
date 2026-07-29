@@ -120,6 +120,33 @@ export class KeyGate {
     }
   }
 
+  /**
+   * FR-12's AC-12.4: the stored key was rejected by a request made after the
+   * gate was already passed, so the session's authentication is over and the
+   * gate goes back up mid-session.
+   *
+   * The stored key is dropped along with it. Keeping a key that OpenRouter
+   * has just refused would leave the app unblocking itself on the next reload
+   * (AC-1.8 trusts a stored key without re-validation) and failing again on
+   * the first request - the gate would be telling the user their key works
+   * while every request says otherwise.
+   *
+   * The document is untouched: this is a state change on the gate alone, and
+   * the editor view stays mounted behind it, which is what makes AC-12.4's
+   * "document content is intact when the gate is passed again" true without
+   * anything having to save or restore it.
+   */
+  revoke(): void {
+    this.generation++
+    if (this.inFlight) {
+      this.inFlight.abort()
+      this.inFlight = null
+    }
+    this.opts.settings.apiKey = ''
+    this._failure = classifyFailure({ status: 401 })
+    this._state = 'blocked-revoked'
+  }
+
   /** Abandons an in-flight validation (or a settled one) and returns to blocked-empty, keeping the typed draft. */
   cancel(): void {
     this.generation++

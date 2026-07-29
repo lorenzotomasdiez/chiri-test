@@ -14,8 +14,15 @@ test('T-CC-NAV-11: every top bar control is keyboard reachable with visible focu
   const collectedNames: string[] = []
   const focusIndicatorChecks: { name: string; visible: boolean }[] = []
 
-  // Tab from address bar into the page - first focus should land on Predictions toggle
+  // Tab from the address bar into the page. The first Tab moves focus from
+  // nowhere onto the document body rather than onto a control, so step past
+  // that before collecting - otherwise the body itself is recorded as the
+  // first "control" and its whole-page textContent is read as an accessible
+  // name, pushing the real fourth control out of the collected window.
   await page.keyboard.press('Tab')
+  if (await page.evaluate(() => document.activeElement === document.body)) {
+    await page.keyboard.press('Tab')
+  }
 
   // Collect focusable elements from top bar by pressing Tab and recording names
   // We expect exactly 4: Predictions, GPT-4o mini, Copy, Download .md

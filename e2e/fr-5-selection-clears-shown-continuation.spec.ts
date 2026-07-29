@@ -12,8 +12,13 @@ test.beforeEach(async ({ page }) => {
 test('T-FR-5-30: A shown continuation is suppressed while text is selected anywhere', async ({
   page,
 }) => {
-  const doc = 'The cabin sat quiet under the first snow of the season, and'
-  const continuation = ' the road out had vanished.'
+  // The phrase selected below ends where the paragraph ends, so the resulting
+  // selection head is at an otherwise eligible position. Selecting mid-line
+  // instead would leave this passing on the end-of-paragraph rule alone, with
+  // the selection check contributing nothing.
+  const selected = 'first snow'
+  const doc = `The cabin sat quiet under the ${selected}`
+  const continuation = ' of the season.'
 
   const mock = await mockOpenRouter(page, { continuation })
 
@@ -25,14 +30,17 @@ test('T-FR-5-30: A shown continuation is suppressed while text is selected anywh
 
   const before = mock.continuationCount()
 
-  // Select somewhere else entirely - not at the caret the offer was made for.
-  // The offer belongs to a writer who was writing forward; a writer who has
-  // started selecting is doing something else.
-  await page.evaluate((text) => {
-    const editor = (window as unknown as { __editor: EditorView }).__editor
-    const from = text.indexOf('first snow')
-    editor.dispatch({ selection: { anchor: from, head: from + 'first snow'.length } })
-  }, doc)
+  // Select back over text already written. The offer belongs to a writer who
+  // was writing forward; a writer who has started selecting is doing
+  // something else.
+  await page.evaluate(
+    ({ text, phrase }) => {
+      const editor = (window as unknown as { __editor: EditorView }).__editor
+      const from = text.indexOf(phrase)
+      editor.dispatch({ selection: { anchor: from, head: from + phrase.length } })
+    },
+    { text: doc, phrase: selected },
+  )
 
   // Immediately, not eventually: the offer is gone the moment the selection exists.
   const afterSelect = await snapshot(page)

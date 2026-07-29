@@ -1,14 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { seedValidatedKey } from './seed'
 import { mockRevisionResponse } from './openrouter-mock'
-import type { EditorView } from '@codemirror/view'
-
-/** The document as CodeMirror holds it - the canonical Markdown, not the DOM. */
-async function docText(page: import('@playwright/test').Page) {
-  return page.evaluate(
-    () => (window as unknown as { __editor: EditorView }).__editor.state.doc.toString(),
-  )
-}
 
 test.beforeEach(async ({ page }) => {
   await seedValidatedKey(page)

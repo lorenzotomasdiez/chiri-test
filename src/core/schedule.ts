@@ -39,6 +39,16 @@ export interface SchedulerOptions {
   onResult?: (text: string) => void
   /** Called per streamed chunk, so first paint can happen before completion (NFR-1). */
   onChunk?: (textSoFar: string) => void
+  /**
+   * FR-12: called with whatever a request threw, for the one thing a
+   * continuation failure is still allowed to do - route a rejected key back
+   * to FR-1's gate (AC-12.4). Never called for a request this scheduler
+   * cancelled itself, since a superseded request is not a failure
+   * (T-FR-12-18), and never a reason to show the user anything: continuation
+   * failures are silent by class (AC-12.1), so a caller that surfaces a
+   * message from here has misread the requirement.
+   */
+  onFailure?: (error: unknown) => void
   /** Reads the currently selected model id, if the caller wants it snapshotted onto each dispatch. */
   modelSource?: () => string
   /** Injected for tests; defaults to the real ones. */
@@ -149,8 +159,18 @@ export class Scheduler {
         text += chunk
         this.opts.onChunk?.(text)
       }
-    } catch {
-      // Continuation failures are silent by design (FR-12, AC-12.1).
+    } catch (error) {
+      // Continuation failures are silent by design (FR-12, AC-12.1) - nothing
+      // is shown here, ever. The failure is still reported to `onFailure`,
+      // because a rejected key has to reach FR-1's gate no matter which class
+      // of request found it out (AC-12.4).
+      //
+      // A cancelled request is excluded: the generation guard and the abort
+      // flag are how FR-10's discipline retires a request the user has moved
+      // past, and that is not a failure to report (T-FR-12-18).
+      if (!controller.signal.aborted && generation === this.generation) {
+        this.opts.onFailure?.(error)
+      }
       return
     } finally {
       if (this.inFlight === controller) this.inFlight = null

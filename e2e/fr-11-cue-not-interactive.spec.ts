@@ -51,8 +51,6 @@ test('T-FR-11-3: the cue is not interactive and never blocks input', async ({ pa
   expect(await cueLocator.textContent()).toBe(cueText)
 
   // document.activeElement is inside .cm-content, proving click passed through the cue
-  const focusedTestId = await focusedElementTestId(page)
-  const cmContent = await page.locator('.cm-content').evaluate((el) => el)
   const isInCmContent = await page.evaluate(
     () => document.activeElement?.closest('.cm-content') !== null,
   )

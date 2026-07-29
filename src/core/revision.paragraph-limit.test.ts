@@ -10,8 +10,9 @@ describe('Paragraph count guard', () => {
     const result = checkParagraphCount(fiveParagraphSelection)
 
     // Then the guard returns a refusal carrying a visible message
-    expect(result.kind).toBe('refused')
-    expect(result.message).toBeTruthy()
+    if (result.kind !== 'refused') {
+      throw new Error(`expected a five-paragraph selection to be refused, got ${result.kind}`)
+    }
     expect(typeof result.message).toBe('string')
     expect(result.message.length).toBeGreaterThan(0)
 
@@ -49,8 +50,9 @@ describe('Paragraph count guard', () => {
     const result = checkParagraphCount(fourParagraphSelection)
 
     // Then the guard refuses it with a visible message
-    expect(result.kind).toBe('refused')
-    expect(result.message).toBeTruthy()
+    if (result.kind !== 'refused') {
+      throw new Error(`expected a four-paragraph selection to be refused, got ${result.kind}`)
+    }
     expect(typeof result.message).toBe('string')
     expect(result.message.length).toBeGreaterThan(0)
   })

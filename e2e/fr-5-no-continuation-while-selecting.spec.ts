@@ -12,9 +12,15 @@ test.beforeEach(async ({ page }) => {
 test('T-FR-5-13: No continuation is requested or shown while a selection is active', async ({
   page,
 }) => {
-  const doc = 'The cabin sat quiet under the first snow of the season, and'
+  // The selected phrase deliberately ends where the paragraph ends, so the
+  // selection's head sits at an otherwise perfectly eligible position. A
+  // phrase selected mid-line would be refused by the end-of-paragraph rule
+  // on its own, and this test would then pass with the selection check
+  // deleted - which is exactly what it did before this was fixed.
+  const selected = 'first snow'
+  const doc = `The cabin sat quiet under the ${selected}`
 
-  const mock = await mockOpenRouter(page, { continuation: ' the road out had vanished.' })
+  const mock = await mockOpenRouter(page, { continuation: ' of the season.' })
 
   await page.locator('.cm-content').click()
   await page.keyboard.type(doc)
@@ -22,13 +28,20 @@ test('T-FR-5-13: No continuation is requested or shown while a selection is acti
   await page.waitForTimeout(PAST_SETTLE_MS)
   const before = mock.continuationCount()
 
-  // Select `first snow`. A selection means the writer is acting on text that
-  // already exists, which is the one thing continuation never speaks to.
-  await page.evaluate((text) => {
-    const editor = (window as unknown as { __editor: EditorView }).__editor
-    const from = text.indexOf('first snow')
-    editor.dispatch({ selection: { anchor: from, head: from + 'first snow'.length } })
-  }, doc)
+  // A selection means the writer is acting on text that already exists,
+  // which is the one thing continuation never speaks to.
+  await page.evaluate(
+    ({ text, phrase }) => {
+      const editor = (window as unknown as { __editor: EditorView }).__editor
+      const from = text.indexOf(phrase)
+      editor.dispatch({ selection: { anchor: from, head: from + phrase.length } })
+    },
+    { text: doc, phrase: selected },
+  )
+
+  // The head of that selection is at the end of the paragraph - the check
+  // below is about the selection, not about where the caret landed.
+  expect(doc.indexOf(selected) + selected.length).toBe(doc.length)
 
   await page.waitForTimeout(PAST_SETTLE_MS)
 

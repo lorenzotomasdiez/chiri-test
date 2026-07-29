@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import { RefinementSession } from './refine'
-import { buildRefinementRequest } from './prompt'
 import type { RequestBody } from './prompt'
 
 describe('RefinementSession three-turn chain', () => {
@@ -15,7 +14,7 @@ describe('RefinementSession three-turn chain', () => {
     let turnCount = 0
 
     // Mock transport that returns different responses for each turn
-    async function* mockTransport(body: RequestBody, signal: AbortSignal): AsyncIterable<string> {
+    async function* mockTransport(body: RequestBody): AsyncIterable<string> {
       requestBodies.push(body)
       turnCount++
 

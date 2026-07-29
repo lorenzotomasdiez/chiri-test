@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { resolveModelId } from '../core/models'
 import { KeyGate, type KeyGateState } from '../core/keygate'
 import type { Failure } from '../core/provider'
+import { classifyRequestFailure, isAbort, type RequestFailureKind } from '../core/failure'
 import { createSettingsHandle } from '../storage/settings'
 import { openRouterProbe } from '../net/openrouter'
 
@@ -36,15 +37,32 @@ export interface AppState {
   apiKey: string
 
   /**
-   * FR-7's refinement-failure surfacing: the widget itself is a plain
-   * WidgetType outside React, so a failed refinement turn reports here
-   * instead of holding local component state, and whatever mounts
-   * FailureBanner (Editor.tsx) reads it back out.
+   * FR-12's visible-failure surface for requested work - revisions (AC-12.2)
+   * and refinements (AC-7.6) alike. One banner, not one per caller: the
+   * refinement widget is a plain WidgetType outside React and cannot hold
+   * React state at all, and two independent failure surfaces would be free to
+   * contradict each other on screen. Whatever mounts FailureBanner
+   * (Editor.tsx) reads these back out.
+   *
+   * Continuation never writes here. Its failures are silent by class
+   * (AC-12.1), and `reportRequestFailure` is not on its path.
    */
-  refinementFailureMessage: string | null
-  refinementRetry: (() => void) | null
-  setRefinementFailure: (message: string, retry: () => void) => void
-  clearRefinementFailure: () => void
+  requestFailureMessage: string | null
+  requestFailureKind: RequestFailureKind | null
+  requestRetry: (() => void) | null
+  /**
+   * Classifies a thrown request failure and does the one right thing with it:
+   * a rejected key returns the app to FR-1's gate (AC-12.4), anything else
+   * becomes the dismissible, retryable banner (AC-12.2).
+   */
+  reportRequestFailure: (error: unknown, retry: () => void) => void
+  clearRequestFailure: () => void
+  /**
+   * AC-12.4 from the silent side: a continuation request found the stored key
+   * rejected. Nothing is shown for the failure itself, but the gate still
+   * goes back up.
+   */
+  reportSilentFailure: (error: unknown) => void
 
   /** FR-1's five-state key gate, mirrored here from the KeyGate instance. */
   keyGateState: KeyGateState
@@ -88,10 +106,38 @@ export const useAppStore = create<AppState>((set) => {
 
     apiKey: settingsHandle.settings.apiKey,
 
-    refinementFailureMessage: null,
-    refinementRetry: null,
-    setRefinementFailure: (message, retry) => set({ refinementFailureMessage: message, refinementRetry: retry }),
-    clearRefinementFailure: () => set({ refinementFailureMessage: null, refinementRetry: null }),
+    requestFailureMessage: null,
+    requestFailureKind: null,
+    requestRetry: null,
+    reportRequestFailure: (error, retry) => {
+      if (isAbort(error)) return
+      const failure = classifyRequestFailure(error)
+      if (failure.routesToKeyGate) {
+        // The gate takes precedence over any banner already on screen
+        // (T-FR-12-17): a message about one request that did not complete is
+        // noise next to a modal saying the session's key no longer works, and
+        // leaving it showing alongside the gate reads as two unrelated
+        // problems when there is one.
+        set({ requestFailureMessage: null, requestFailureKind: null, requestRetry: null })
+        keyGate.revoke()
+        syncGate()
+        return
+      }
+      set({
+        requestFailureMessage: failure.message,
+        requestFailureKind: failure.kind,
+        requestRetry: retry,
+      })
+    },
+    clearRequestFailure: () =>
+      set({ requestFailureMessage: null, requestFailureKind: null, requestRetry: null }),
+    reportSilentFailure: (error) => {
+      if (isAbort(error)) return
+      if (!classifyRequestFailure(error).routesToKeyGate) return
+      set({ requestFailureMessage: null, requestFailureKind: null, requestRetry: null })
+      keyGate.revoke()
+      syncGate()
+    },
 
     keyGateState: keyGate.state,
     keyGateFailure: keyGate.failure,

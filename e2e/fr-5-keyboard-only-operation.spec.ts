@@ -49,13 +49,30 @@ test('T-FR-5-28: A shown continuation is fully operable without a pointer', asyn
   expect(afterAccept.caret).toBe((initialDoc + continuation).length)
 })
 
-test('T-FR-5-28: Tab still leaves the editor when there is no continuation to accept', async ({
-  page,
-}) => {
+test('T-FR-5-28: Tab is not swallowed when there is no continuation to accept', async ({ page }) => {
   // Tab is bound to accept only while an offer is showing. With nothing to
-  // accept it must fall through, or a keyboard-only writer is trapped in the
-  // editor with no way out - the exact failure the binding risks.
+  // accept it must fall through to the browser's own focus traversal, or a
+  // keyboard-only writer is trapped in the editor - the exact failure this
+  // binding risks.
+  //
+  // What is asserted is whether the keystroke was consumed, not where focus
+  // ended up. The editor is the last focusable thing on the page, so Tab
+  // hands focus to the browser's own chrome, and the browsers disagree about
+  // what document.activeElement reads as afterwards: Chromium reports body,
+  // Firefox leaves it pointing at the element that had focus. Neither answer
+  // says anything about whether the editor swallowed the key - preventDefault
+  // does, in every browser.
   await mockOpenRouter(page, { continuation: ' something.' })
+
+  await page.evaluate(() => {
+    const seen: boolean[] = []
+    ;(window as unknown as { __tabPrevented: boolean[] }).__tabPrevented = seen
+    // Bubble phase on window, so this runs after the editor's own handler has
+    // had its say about the event.
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'Tab') seen.push(event.defaultPrevented)
+    })
+  })
 
   await page.keyboard.type('A line with no offer showing yet')
 
@@ -68,10 +85,18 @@ test('T-FR-5-28: Tab still leaves the editor when there is no continuation to ac
   await page.keyboard.press('ArrowLeft')
   expect(await ghostText(page)).toBeNull()
 
+  const before = await snapshot(page)
   await page.keyboard.press('Tab')
 
-  const stillInEditor = await page.evaluate(() =>
-    document.activeElement?.classList.contains('cm-content'),
+  const prevented = await page.evaluate(
+    () => (window as unknown as { __tabPrevented: boolean[] }).__tabPrevented,
   )
-  expect(stillInEditor, 'Tab with no offer showing must not be swallowed by the editor').toBe(false)
+  expect(prevented, 'exactly one Tab keydown should have been seen').toHaveLength(1)
+  expect(prevented[0], 'Tab with no offer showing must not be consumed by the editor').toBe(false)
+
+  // And it certainly must not have edited the document - no tab character,
+  // no accepted continuation.
+  const after = await snapshot(page)
+  expect(after.doc).toBe(before.doc)
+  expect(after.caret).toBe(before.caret)
 })

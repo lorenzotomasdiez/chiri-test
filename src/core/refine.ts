@@ -8,8 +8,8 @@
  * A RefinementSession owns the instruction chain (every instruction the user
  * has submitted, in order - each turn's request carries the full chain plus
  * the current proposed text, per buildRefinementRequest in prompt.ts), the
- * current proposed text and reason, the last-successful snapshot to revert
- * to when a turn fails, an AbortController for whatever turn is in flight,
+ * current proposed text and reason, the last-successful snapshot a failed
+ * turn restores (AC-7.6), an AbortController for whatever turn is in flight,
  * and the terminal accept()/reject() transitions.
  *
  * Two ways to build one, because the callers that exercise this module want
@@ -22,6 +22,7 @@
  * pending revision's fields as an object.
  */
 
+import { MalformedResponseError } from './failure'
 import { buildRefinementRequest, type RequestBody } from './prompt'
 import { splitRevisionResponse } from './provider'
 
@@ -59,13 +60,6 @@ export class RefinementSession {
   /** The current visible reason, alongside `proposedText`. */
   reason: string
 
-  /**
-   * `status` is exposed two ways depending on how the session was built: a
-   * plain field for config-object construction, a zero-arg accessor for
-   * positional construction. Both read the same underlying `_status`.
-   */
-  status: RefinementStatus | (() => RefinementStatus)
-
   private readonly transport: RefinementTransport
   private readonly modelId: string
   private readonly instructionChain: string[]
@@ -81,9 +75,9 @@ export class RefinementSession {
   private _status: RefinementStatus = 'pending'
   private inFlight: AbortController | null = null
   private generation = 0
-  /** The last successful turn's text, reverted to when a turn fails. */
-  private lastGood: { proposedText: string; reason: string }
   private lastFailure: unknown = null
+  /** The last turn that succeeded - what a failed turn reverts to (AC-7.6, T-FR-12-4). */
+  private lastGood: { proposedText: string; reason: string }
 
   constructor(
     originalTextOrConfig: string | RefinementSessionConfig,
@@ -101,7 +95,6 @@ export class RefinementSession {
       this.modelId = config.modelId ?? ''
       this.instructionChain = config.instructionHistory ? [...config.instructionHistory] : []
       this.blockingRefine = false
-      this.status = 'pending'
     } else {
       this.originalText = originalTextOrConfig
       this.proposedText = proposedText ?? ''
@@ -115,7 +108,6 @@ export class RefinementSession {
       }
       this.modelId = ''
       this.blockingRefine = true
-      this.status = () => this._status
     }
 
     this.originalRemovalText = this.originalText
@@ -123,9 +115,13 @@ export class RefinementSession {
     this.lastGood = { proposedText: this.proposedText, reason: this.reason }
   }
 
+  /** The session's current lifecycle status. */
+  status(): RefinementStatus {
+    return this._status
+  }
+
   private setStatus(status: RefinementStatus): void {
     this._status = status
-    if (typeof this.status !== 'function') this.status = status
   }
 
   /** The document text this session was constructed against - unchanged by any in-flight or rejected turn. */
@@ -161,14 +157,28 @@ export class RefinementSession {
     return this.lastFailure
   }
 
+  /** True while a turn is in flight - what the review surface reads to say a refinement is already in progress. */
+  isRefining(): boolean {
+    return this._status === 'refining'
+  }
+
   /**
    * Submits one refinement instruction. Builds the request from the full
    * instruction chain plus the current proposed text (AC-7.2), dispatches
    * it, and on success replaces the visible proposal and reason in place -
    * the span, and the pre-revision original, never move. On failure, the
    * last-successful snapshot is what stays visible.
+   *
+   * A turn submitted while another is still in flight is refused outright
+   * rather than superseding it (T-FR-7-9). FR-7 leaves the choice open;
+   * blocking is the reading the review surface already implies, since it
+   * disables its own controls for the duration of a turn. Refusing is a
+   * no-op, not a failure: the instruction is never appended to the chain, no
+   * request goes out, and nothing is surfaced for the user to dismiss.
    */
   async refine(instruction: string): Promise<void> {
+    if (this._status === 'refining') return
+
     this.instructionChain.push(instruction)
     this.lastFailure = null
     this.setStatus('refining')
@@ -208,6 +218,12 @@ export class RefinementSession {
     } catch (error) {
       if (controller.signal.aborted || generation !== this.generation) return
       this.lastFailure = error
+      // AC-7.6 / T-FR-12-4: the last turn that succeeded is what stays
+      // visible. Restored explicitly rather than relied on: a future turn
+      // that streams into `proposedText` as it arrives would otherwise leave
+      // half a failed answer on screen as if it were the result.
+      this.proposedText = this.lastGood.proposedText
+      this.reason = this.lastGood.reason
       if (this._status !== 'accepted' && this._status !== 'rejected') this.setStatus('pending')
       return
     } finally {
@@ -218,7 +234,11 @@ export class RefinementSession {
 
     const split = splitRevisionResponse(text)
     if (!split) {
-      this.lastFailure = new Error('The refinement could not be understood.')
+      // A response that arrived but cannot be read is the same failure as one
+      // that never arrived (AC-12.6), down to reverting to the last good turn.
+      this.lastFailure = new MalformedResponseError('The refinement could not be understood.')
+      this.proposedText = this.lastGood.proposedText
+      this.reason = this.lastGood.reason
       if (this._status !== 'accepted' && this._status !== 'rejected') this.setStatus('pending')
       return
     }

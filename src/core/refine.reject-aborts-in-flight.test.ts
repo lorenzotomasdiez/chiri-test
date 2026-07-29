@@ -4,11 +4,6 @@ import { RefinementSession } from './refine'
 /** A transport that returns a never-resolving async iterable and records its AbortSignal. */
 function controllableNeverResolvingTransport() {
   let capturedSignal: AbortSignal
-  let resolveIterator: ((value: unknown) => void) | undefined
-
-  const iterator = new Promise<AsyncIterable<string>>((resolve) => {
-    resolveIterator = resolve
-  })
 
   // Annotated rather than inferred: the body references the function's own
   // return type, which tsc cannot resolve circularly.
@@ -25,7 +20,6 @@ function controllableNeverResolvingTransport() {
   return {
     transport,
     getCapturedSignal: () => capturedSignal,
-    resolveIterator: resolveIterator!,
   }
 }
 
@@ -60,7 +54,7 @@ describe('RefinementSession', () => {
     expect(getCapturedSignal().aborted).toBe(true)
 
     // And the session's status is 'rejected'
-    expect(session.status).toBe('rejected')
+    expect(session.status()).toBe('rejected')
 
     // And the document text the session was constructed with is
     // byte-identical to its pre-revision value

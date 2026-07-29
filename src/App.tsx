@@ -63,7 +63,12 @@ export default function App() {
           key gate is passed, and on no screen before it. */}
       {unblocked && <TopBar />}
       <main className="mx-auto max-w-2xl px-6 pt-24 pb-32">
-        <div className="relative h-[900px]">
+        {/* CC-SHELL.5: no height of its own - the column grows with whatever
+            is written in it, so the window stays the only scroll container
+            (the editor's own min-height below is what keeps the blank space
+            beneath a short document clickable). The onboarding cue below
+            positions against this box, so it must stay `relative`. */}
+        <div className="relative">
           {empty && unblocked && (
             <p
               // NFR-6: the cue is the only place a first-time user is told how

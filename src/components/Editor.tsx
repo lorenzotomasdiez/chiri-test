@@ -27,25 +27,54 @@ import { useAppStore } from '../state/store'
 import { createContinuationTransport } from '../net/openrouter'
 
 const theme = EditorView.theme({
-  '&': { fontSize: '18px', height: '100%' },
+  // CC-SHELL.5/.6: deliberately no height at all. A height here would make
+  // .cm-scroller a scroll container in its own right, and the page would then
+  // have two nested scrollers with the inner one winning - a scrollbar that
+  // starts and stops mid-page rather than the window's. Left unset, the view
+  // sizes to its content and the window is the only thing that ever scrolls.
+  // The clickable blank space below the last line comes from the host div's
+  // min-height instead (see the render below).
+  '&': { fontSize: '18px' },
   '&.cm-focused': { outline: 'none' },
   '.cm-content': {
     fontFamily: 'Inter, system-ui, -apple-system, Helvetica, Arial',
     lineHeight: '1.75',
     color: '#1D1D1F',
-    padding: '2rem 0 40vh',
+    // CC-SHELL.5: trailing space so the last line never sits against the
+    // bottom edge. This is the visual air inside the column; the 128px floor
+    // is met together with <main>'s own pb-32. It used to be 40vh, which was
+    // really standing in for typing comfort - that job now belongs to the
+    // scrollMargins facet below, which actually scrolls the caret clear of
+    // the bottom instead of merely leaving room under it.
+    padding: '2rem 0 4rem',
     caretColor: '#1D1D1F',
     WebkitFontSmoothing: 'antialiased',
-    // CodeMirror's base theme sets min-height: 100% so clicking blank space
-    // below the last line still focuses the editor. The writing column's
-    // host wrapper is intentionally taller than the visible viewport so a
-    // click far down the page still lands on it (CC-DOC surface); without
-    // this override that height would cascade onto .cm-content itself and
-    // the same click would force an unwanted viewport scroll.
+    // CodeMirror's base theme sets min-height: 100% here so clicking blank
+    // space below the last line still focuses the editor. That guarantee is
+    // the host div's job now (its min-height keeps a clickable region under
+    // short documents), and leaving the percentage in place risks it
+    // resolving against a stretched flex line and reintroducing overflow.
     minHeight: 'auto',
   },
   '.cm-line': { padding: '0', color: '#1D1D1F' },
   '.cm-activeLine': { backgroundColor: 'transparent' },
+
+  // CC-DOC.9: the selection is the ink at 10%, never a blue system highlight
+  // (CC-COLOR.1 admits no other hue). The ::selection rule in src/index.css
+  // cannot say this on its own - drawSelection() paints its own layer instead
+  // of the native highlight, and the base theme reserves a separate, more
+  // specific rule for the focused editor, which is the state a writer is
+  // almost always in. Both selectors are stated so neither state falls back
+  // to the default lavender.
+  '.cm-selectionLayer .cm-selectionBackground': { background: 'rgba(29, 29, 31, 0.1)' },
+  '&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground': {
+    background: 'rgba(29, 29, 31, 0.1)',
+  },
+
+  // Same reason for the caret: drawSelection() draws it as an element rather
+  // than leaving it to caretColor above, and the base theme's border is a
+  // hard black rather than the ink.
+  '.cm-cursor, .cm-dropCursor': { borderLeftColor: '#1D1D1F' },
 
   // Live-preview construct treatment (CC-DOC.1-10). Marker hide/atomic
   // ranges live in src/editor/livePreview.ts; this is only the visual
@@ -189,9 +218,9 @@ export function Editor({
   const editableCompartment = useRef(new Compartment()).current
   const describedByCompartment = useRef(new Compartment()).current
   const onDocChangeRef = useRef(onDocChange)
-  const refinementFailureMessage = useAppStore((s) => s.refinementFailureMessage)
-  const refinementRetry = useAppStore((s) => s.refinementRetry)
-  const clearRefinementFailure = useAppStore((s) => s.clearRefinementFailure)
+  const requestFailureMessage = useAppStore((s) => s.requestFailureMessage)
+  const requestRetry = useAppStore((s) => s.requestRetry)
+  const clearRequestFailure = useAppStore((s) => s.clearRequestFailure)
   useEffect(() => {
     onDocChangeRef.current = onDocChange
   }, [onDocChange])
@@ -252,8 +281,21 @@ export function Editor({
             }),
             isEnabled: () => useAppStore.getState().predictionsEnabled,
             modelId: () => useAppStore.getState().selectedModelId,
+            // FR-12: a continuation failure shows the user nothing (AC-12.1).
+            // This hook exists for the single exception - a key OpenRouter has
+            // rejected still puts FR-1's gate back up, whichever class of
+            // request found it out (AC-12.4).
+            onFailure: (error) => useAppStore.getState().reportSilentFailure(error),
           }),
           EditorView.lineWrapping,
+          // The window is the scroll container (CC-SHELL.6), so scrolling the
+          // caret into view otherwise parks the line being typed flush
+          // against the bottom edge of the screen. This keeps 128px of air
+          // under it. Stated as a scroll margin rather than as padding
+          // because it is a scrolling concern, not a layout one: padding
+          // large enough to have the same effect would also have to be
+          // viewport-sized, which is what put the old 40vh in here.
+          EditorView.scrollMargins.of(() => ({ bottom: 128 })),
           theme,
           editableCompartment.of([
             EditorView.editable.of(editable),
@@ -381,7 +423,15 @@ export function Editor({
       <div
         ref={host}
         data-testid="editor"
-        className="h-full w-full"
+        // The min-height is the whole of CC-DOC's "click blank space below
+        // the last line" guarantee for a short document. The view itself has
+        // no height (see the theme above) so it collapses to the height of
+        // its text; without this the area under a two-line document would be
+        // nothing at all and a click there would land on the page, not here.
+        // 14rem is <main>'s own pt-24 + pb-32, so a short document fills the
+        // window exactly and stops - one more pixel and CC-SHELL.6's "no
+        // scrollbar until there is something to scroll" would be false.
+        className="min-h-[calc(100vh-14rem)] w-full"
         // Blocked by the key gate: contenteditable is toggled off via the
         // editable/readOnly compartment above, which already removes the
         // surface from focus and the tab order (a non-editable, non-tabindex
@@ -400,14 +450,20 @@ export function Editor({
       {selection && !hasPendingRevision && viewRef.current && (
         <SelectionActionBar view={viewRef.current} from={selection.from} to={selection.to} />
       )}
-      {refinementFailureMessage && (
+      {/* FR-12's visible half (AC-12.2): every requested failure - a revision
+          or a refinement - surfaces here, dismissible and retryable. Rendered
+          alongside the document rather than over it, so AC-12.1's sibling
+          promise holds too: typing carries on underneath while it is showing
+          (T-FR-12-15). */}
+      {requestFailureMessage && (
         <FailureBanner
-          message={refinementFailureMessage}
+          message={requestFailureMessage}
           onRetry={() => {
-            clearRefinementFailure()
-            refinementRetry?.()
+            const retry = requestRetry
+            clearRequestFailure()
+            retry?.()
           }}
-          onDismiss={clearRefinementFailure}
+          onDismiss={clearRequestFailure}
         />
       )}
     </>

@@ -156,6 +156,11 @@ export interface GhostTextOptions {
   isEnabled: () => boolean
   /** Reads the currently selected model id, snapshotted onto each request (FR-8). */
   modelId?: () => string
+  /**
+   * FR-12: a continuation request failed. Nothing is drawn either way - this
+   * exists only so a rejected key can route to FR-1's gate (AC-12.4).
+   */
+  onFailure?: (error: unknown) => void
 }
 
 /** The full ghost-text extension: install once in the editor's extension list. */
@@ -167,6 +172,7 @@ export function ghostText(options: GhostTextOptions) {
     transport: options.transport,
     enabled: options.isEnabled(),
     modelSource: options.modelId,
+    onFailure: options.onFailure,
     onResult: (raw) => {
       const view = viewHolder.view
       if (!view) return

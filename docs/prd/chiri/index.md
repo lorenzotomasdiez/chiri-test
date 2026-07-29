@@ -139,13 +139,13 @@ The three structural guarantees that hold this in place are that continuations a
 | FR-2 | Launch identity | P2 | Built | Below |
 | FR-3 | Single Markdown document surface | P0 | Built and verified | Below |
 | FR-4 | Local persistence of the document | P0 | Built | Below |
-| FR-5 | Inline continuation prediction | P0 | Not started | [fr-5.md](./fr-5.md) |
+| FR-5 | Inline continuation prediction | P0 | Built | [fr-5.md](./fr-5.md) |
 | FR-6 | Selection-triggered AI revisions | P0 | Built, partially verified | [fr-6.md](./fr-6.md) |
-| FR-7 | Refine a revision in place | P0 | Not started | Below |
+| FR-7 | Refine a revision in place | P0 | Built | Below |
 | FR-8 | Model selector | P1 | Built, partially verified | Below |
 | FR-9 | Export the document | P1 | Built, partially verified | Below |
-| FR-10 | Prediction request discipline | P0 | Not started | Below |
-| FR-11 | Empty-document onboarding cue | P1 | Not started | Below |
+| FR-10 | Prediction request discipline | P0 | Built | Below |
+| FR-11 | Empty-document onboarding cue | P1 | Built | Below |
 | FR-12 | AI failure and offline behavior | P0 | Not started | Below |
 
 `Implementation` tracks whether the code exists and what proves it, and is separate from the `Status` field above, which tracks the maturity of this document.

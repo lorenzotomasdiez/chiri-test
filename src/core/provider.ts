@@ -104,8 +104,14 @@ export function decodeCompletionStream(rawBody: string): string | undefined {
   return text.trim() ? text : undefined
 }
 
-/** Pulls the prose out of one complete SSE frame, or '' if it carries none. */
-function decodeFrame(block: string): string {
+/**
+ * Pulls the prose out of one complete SSE frame, or '' if it carries none.
+ * `onTerminated` fires for any frame that says the provider considers the
+ * response finished - the `[DONE]` payload, or a `finish_reason` on the
+ * choice. Either one is enough; a proxy that drops `[DONE]` still sets the
+ * latter, and treating that response as truncated would be wrong.
+ */
+function decodeFrame(block: string, onTerminated?: () => void): string {
   let text = ''
 
   for (const line of block.split('\n')) {
@@ -113,7 +119,11 @@ function decodeFrame(block: string): string {
     if (!trimmed.startsWith('data:')) continue
 
     const payload = trimmed.slice('data:'.length).trim()
-    if (!payload || payload === STREAM_DONE) continue
+    if (payload === STREAM_DONE) {
+      onTerminated?.()
+      continue
+    }
+    if (!payload) continue
 
     let frame: unknown
     try {
@@ -134,7 +144,12 @@ function decodeFrame(block: string): string {
     const choice = choices[0] as {
       delta?: { content?: unknown }
       message?: { content?: unknown }
+      finish_reason?: unknown
     }
+    // A non-streamed body carries the whole answer in `message.content` and
+    // has no `[DONE]` frame at all, so its completeness has to be read off
+    // the choice itself.
+    if (choice.finish_reason != null || choice.message !== undefined) onTerminated?.()
     const fragment = choice.delta?.content ?? choice.message?.content
     if (typeof fragment === 'string') text += fragment
   }
@@ -147,6 +162,16 @@ export interface CompletionStreamDecoder {
   push(chunk: string): string
   /** Decodes any trailing frame the body ended without a blank line after. */
   flush(): string
+  /**
+   * Whether the provider ever said the response was finished - a `[DONE]`
+   * frame or a `finish_reason`. False after the last chunk means the
+   * connection closed mid-response, which AC-12.6 treats as a failed request
+   * rather than as a short answer: the difference between "the model wrote
+   * this much" and "this much of what the model wrote arrived" is invisible
+   * in the text alone, and rendering the second as if it were the first is
+   * exactly the stale-partial-text bug T-FR-12-11 exists to catch.
+   */
+  sawTerminator(): boolean
 }
 
 /**
@@ -163,8 +188,14 @@ export interface CompletionStreamDecoder {
  */
 export function createCompletionStreamDecoder(): CompletionStreamDecoder {
   let buffer = ''
+  let terminated = false
+  const markTerminated = () => {
+    terminated = true
+  }
 
   return {
+    sawTerminator: () => terminated,
+
     push(chunk: string): string {
       // Normalise line endings once, on the way in, so a CRLF frame
       // separator cannot be missed by the blank-line split below.
@@ -173,7 +204,7 @@ export function createCompletionStreamDecoder(): CompletionStreamDecoder {
       let text = ''
       let boundary = buffer.indexOf('\n\n')
       while (boundary !== -1) {
-        text += decodeFrame(buffer.slice(0, boundary))
+        text += decodeFrame(buffer.slice(0, boundary), markTerminated)
         buffer = buffer.slice(boundary + 2)
         boundary = buffer.indexOf('\n\n')
       }
@@ -183,7 +214,7 @@ export function createCompletionStreamDecoder(): CompletionStreamDecoder {
     flush(): string {
       const tail = buffer
       buffer = ''
-      return tail ? decodeFrame(tail) : ''
+      return tail ? decodeFrame(tail, markTerminated) : ''
     },
   }
 }

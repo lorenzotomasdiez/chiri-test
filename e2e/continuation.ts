@@ -19,9 +19,6 @@ import type { Page, Route } from '@playwright/test'
 /** The first words of the continuation system message in src/core/prompt.ts. */
 const CONTINUATION_MARKER = 'Continue the text with at most two sentences'
 
-/** The first words of the revision system message in src/core/prompt.ts. */
-const REVISION_MARKER = 'Rewrite only the marked span'
-
 /**
  * The Scheduler's settle window (src/editor/ghostText.ts passes 600). A pause
  * asserted as "no continuation was requested" has to outlast this, or it is
@@ -30,7 +27,7 @@ const REVISION_MARKER = 'Rewrite only the marked span'
 export const SETTLE_MS = 600
 
 /** Comfortably past the settle window, for scenarios asserting silence. */
-export const PAST_SETTLE_MS = 1200
+export const PAST_SETTLE_MS = SETTLE_MS * 2
 
 /** The document as CodeMirror holds it - the canonical Markdown, not the DOM. */
 export async function docText(page: Page): Promise<string> {
@@ -139,15 +136,9 @@ function isContinuation(route: Route): boolean {
   return (route.request().postData() ?? '').includes(CONTINUATION_MARKER)
 }
 
-function isRevision(route: Route): boolean {
-  return (route.request().postData() ?? '').includes(REVISION_MARKER)
-}
-
 export interface OpenRouterMock {
   /** How many continuation requests actually reached the network layer. */
   continuationCount(): number
-  /** How many revision requests actually reached the network layer. */
-  revisionCount(): number
 }
 
 export interface MockOptions {
@@ -159,22 +150,19 @@ export interface MockOptions {
   continuation?: string | string[]
   /** Fail the continuation request instead of answering it (T-FR-5-20). */
   failContinuation?: boolean
-  /** Delay before the continuation response is served, for staleness scenarios. */
-  continuationDelayMs?: number
-  /** An FR-6 revision response, for the specs that raise a pending span first. */
-  revision?: { reason: string; proposal: string }
 }
 
 /**
- * Installs one OpenRouter handler that answers continuation and revision
- * requests separately and counts both. Both kinds go to the same host, so a
- * spec that needs a pending revision *and* an assertion about continuation
- * traffic cannot express itself with two independent `page.route` calls -
- * whichever registered last would swallow the other's requests.
+ * Installs one OpenRouter handler that answers continuation requests and
+ * counts them.
+ *
+ * The count is keyed off the continuation system message rather than the host,
+ * because FR-6's revisions and FR-1's key validation go to the same host. A
+ * counter that could not tell them apart would report traffic FR-5 never
+ * caused.
  */
 export async function mockOpenRouter(page: Page, options: MockOptions = {}): Promise<OpenRouterMock> {
   let continuationCount = 0
-  let revisionCount = 0
 
   await page.route('https://openrouter.ai/**', async (route) => {
     if (isContinuation(route)) {
@@ -183,10 +171,6 @@ export async function mockOpenRouter(page: Page, options: MockOptions = {}): Pro
       if (options.failContinuation) {
         await route.abort('failed')
         return
-      }
-
-      if (options.continuationDelayMs) {
-        await new Promise((resolve) => setTimeout(resolve, options.continuationDelayMs))
       }
 
       const fragments =
@@ -202,33 +186,13 @@ export async function mockOpenRouter(page: Page, options: MockOptions = {}): Pro
       return
     }
 
-    if (isRevision(route)) {
-      revisionCount++
-      const revision = options.revision ?? { reason: 'Clearer', proposal: 'rewritten span' }
-      await route.fulfill({
-        status: 200,
-        headers: { 'content-type': 'text/event-stream' },
-        body:
-          frame(`reason: ${revision.reason}\n`) +
-          frame('--') +
-          frame('sep') +
-          frame('--') +
-          frame(`\n${revision.proposal}`) +
-          'data: [DONE]\n\n',
-      })
-      return
-    }
-
-    // Anything else this app sends to OpenRouter (key validation) is answered
-    // as an empty success rather than aborted, so an unrelated request never
-    // surfaces as a failure inside an FR-5 spec.
+    // Anything else this app sends to OpenRouter (key validation, an FR-6
+    // revision) is answered as an empty success rather than aborted, so an
+    // unrelated request never surfaces as a failure inside an FR-5 spec.
     await route.fulfill({ status: 200, headers: { 'content-type': 'application/json' }, body: '{}' })
   })
 
-  return {
-    continuationCount: () => continuationCount,
-    revisionCount: () => revisionCount,
-  }
+  return { continuationCount: () => continuationCount }
 }
 
 /**
@@ -286,14 +250,4 @@ export async function moveCaret(page: Page, offset: number): Promise<void> {
       .__editor
     editor.dispatch({ selection: { anchor } })
   }, offset)
-}
-
-/**
- * Types `text` into a freshly booted editor and leaves the caret at its end.
- * The editor focuses itself at mount, so this deliberately does not click -
- * the keyboard-only scenarios need a path to a populated document that never
- * touches a pointer.
- */
-export async function typeDocument(page: Page, text: string): Promise<void> {
-  await page.keyboard.type(text)
 }

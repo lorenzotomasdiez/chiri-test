@@ -67,14 +67,17 @@ test('T-FR-4-5: The document survives the browser being fully closed and reopene
     await expect(spinner).toHaveCount(0)
 
     // Verify immediate editability by typing and seeing the text appear
-    const editorContentAfter = page2.locator('[data-testid="editor"] .cm-content')
-    await editorContentAfter.click()
+    // Click the last line rather than the middle of .cm-content: the content
+    // element is only as tall as the text plus its trailing space now
+    // (CC-SHELL.5), so its centre is a character position partway up the
+    // document, and End would then be the end of *that* line.
+    await page2.locator('[data-testid="editor"] .cm-line').last().click()
 
-    // Move cursor to end of document
+    // Move cursor to end of document, which is the end of that last line
     await page2.keyboard.press('End')
 
     // Type additional content
-    await editorContentAfter.type(' more')
+    await page2.locator('[data-testid="editor"] .cm-content').type(' more')
 
     // Verify the new text was typed immediately and appears in the editor
     const editorStateAfterTyping = await page2.evaluate(() => {

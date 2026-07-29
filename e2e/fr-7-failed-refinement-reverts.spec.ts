@@ -20,7 +20,7 @@ test('T-FR-7-6: A failed refinement request (network abort) reverts to the last 
   page,
 }) => {
   const fullDoc = 'Intro line.\n\nThe report was late because the team was busy.\n\nClosing line.'
-  const selectedText = 'The report was late because the team was busy'
+  const selectedText = 'The report was late because the team was busy.'
   const refinedProposal = 'The report slipped.'
   const refinedReason = 'Shortened'
 
@@ -35,7 +35,7 @@ test('T-FR-7-6: A failed refinement request (network abort) reverts to the last 
 
   // Set up a pending revision showing the result of a previous successful refinement
   await page.evaluate(
-    ([start, end, proposed, reason]) => {
+    ({ start, end, proposed, reason, existing }) => {
       const editor = (window as unknown as { __editor: EditorView }).__editor
       const pendingSpanField = (window as unknown as { pendingSpanField: any }).pendingSpanField
       if (!pendingSpanField) {
@@ -46,10 +46,10 @@ test('T-FR-7-6: A failed refinement request (network abort) reverts to the last 
         id: 'pending-previous-refinement',
         from: start,
         to: end,
-        proposed: proposed,
+        proposed,
         status: 'pending',
-        existing: selectedText,
-        reason: reason,
+        existing,
+        reason,
         modelId: 'gpt-4',
       }
 
@@ -57,7 +57,13 @@ test('T-FR-7-6: A failed refinement request (network abort) reverts to the last 
         effects: [pendingSpanField.setEffect.of(revision)],
       })
     },
-    [startIdx, endIdx, refinedProposal, refinedReason],
+    {
+      start: startIdx,
+      end: endIdx,
+      proposed: refinedProposal,
+      reason: refinedReason,
+      existing: selectedText,
+    },
   )
 
   // Verify revision is displayed with the refined text
@@ -115,7 +121,7 @@ test('T-FR-7-6: A failed refinement request (truncated stream) reverts to the la
   page,
 }) => {
   const fullDoc = 'Intro line.\n\nThe report was late because the team was busy.\n\nClosing line.'
-  const selectedText = 'The report was late because the team was busy'
+  const selectedText = 'The report was late because the team was busy.'
   const refinedProposal = 'The report slipped.'
   const refinedReason = 'Shortened'
 
@@ -130,7 +136,7 @@ test('T-FR-7-6: A failed refinement request (truncated stream) reverts to the la
 
   // Set up a pending revision showing the result of a previous successful refinement
   await page.evaluate(
-    ([start, end, proposed, reason]) => {
+    ({ start, end, proposed, reason, existing }) => {
       const editor = (window as unknown as { __editor: EditorView }).__editor
       const pendingSpanField = (window as unknown as { pendingSpanField: any }).pendingSpanField
       if (!pendingSpanField) {
@@ -141,10 +147,10 @@ test('T-FR-7-6: A failed refinement request (truncated stream) reverts to the la
         id: 'pending-previous-refinement-2',
         from: start,
         to: end,
-        proposed: proposed,
+        proposed,
         status: 'pending',
-        existing: selectedText,
-        reason: reason,
+        existing,
+        reason,
         modelId: 'gpt-4',
       }
 
@@ -152,7 +158,13 @@ test('T-FR-7-6: A failed refinement request (truncated stream) reverts to the la
         effects: [pendingSpanField.setEffect.of(revision)],
       })
     },
-    [startIdx, endIdx, refinedProposal, refinedReason],
+    {
+      start: startIdx,
+      end: endIdx,
+      proposed: refinedProposal,
+      reason: refinedReason,
+      existing: selectedText,
+    },
   )
 
   // Verify revision is displayed with the refined text
@@ -213,7 +225,7 @@ test('T-FR-7-6: A failed refinement request (HTTP 429) reverts to the last succe
   page,
 }) => {
   const fullDoc = 'Intro line.\n\nThe report was late because the team was busy.\n\nClosing line.'
-  const selectedText = 'The report was late because the team was busy'
+  const selectedText = 'The report was late because the team was busy.'
   const refinedProposal = 'The report slipped.'
   const refinedReason = 'Shortened'
 
@@ -228,7 +240,7 @@ test('T-FR-7-6: A failed refinement request (HTTP 429) reverts to the last succe
 
   // Set up a pending revision showing the result of a previous successful refinement
   await page.evaluate(
-    ([start, end, proposed, reason]) => {
+    ({ start, end, proposed, reason, existing }) => {
       const editor = (window as unknown as { __editor: EditorView }).__editor
       const pendingSpanField = (window as unknown as { pendingSpanField: any }).pendingSpanField
       if (!pendingSpanField) {
@@ -239,10 +251,10 @@ test('T-FR-7-6: A failed refinement request (HTTP 429) reverts to the last succe
         id: 'pending-previous-refinement-3',
         from: start,
         to: end,
-        proposed: proposed,
+        proposed,
         status: 'pending',
-        existing: selectedText,
-        reason: reason,
+        existing,
+        reason,
         modelId: 'gpt-4',
       }
 
@@ -250,7 +262,13 @@ test('T-FR-7-6: A failed refinement request (HTTP 429) reverts to the last succe
         effects: [pendingSpanField.setEffect.of(revision)],
       })
     },
-    [startIdx, endIdx, refinedProposal, refinedReason],
+    {
+      start: startIdx,
+      end: endIdx,
+      proposed: refinedProposal,
+      reason: refinedReason,
+      existing: selectedText,
+    },
   )
 
   // Verify revision is displayed with the refined text

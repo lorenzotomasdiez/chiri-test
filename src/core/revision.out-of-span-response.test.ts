@@ -40,9 +40,11 @@ describe('Response span containment', () => {
       inSpanResponse,
     )
 
-    expect(acceptedResult.kind).toBe('accepted')
+    if (acceptedResult.kind !== 'accepted') {
+      throw new Error(`expected an in-span response to be accepted, got ${acceptedResult.kind}`)
+    }
     expect(acceptedResult.accepted).toBe(true)
     expect(acceptedResult.pending).toBeDefined()
-    expect(acceptedResult.pending?.proposal).toBe(inSpanResponse)
+    expect(acceptedResult.pending.proposal).toBe(inSpanResponse)
   })
 })

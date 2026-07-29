@@ -126,10 +126,13 @@ The application has passed the FR-1 key gate and a model is selected per FR-8.
 
 **Given** the user submitted "make it shorter" and that refinement request is still in flight
 **When** the user immediately submits a second instruction, "less formal", before the first response has arrived
-**Then** exactly one of the two possibilities named by the product happens and is observable: either the second submission is blocked until the first turn resolves, with a visible indication that a refinement is already in progress, or the first request is superseded and cancelled in favor of the second
-**And** whichever behavior occurs, the document remains unchanged throughout and at most one refinement result is ever rendered at a time
+**Then** the second submission is blocked until the first turn resolves, with a visible indication that a refinement is already in progress
+**And** the blocked submission is a no-op rather than a failure: no second request is issued, the instruction chain is not appended to, and nothing is surfaced for the user to dismiss
+**And** the document remains unchanged throughout and at most one refinement result is ever rendered at a time
+**And** once the first turn resolves, the same instruction resubmitted goes through normally
 
-**How you would run this:** Unit-level against the revision reducer, asserting the reducer's actual behavior for a second `Refining` action received while already `Refining`, since the requirement text does not specify which of the two outcomes is correct (see Open Questions).
+**How you would run this:** Unit-level against `RefinementSession` for the state machine, asserting a second `refine()` received while already refining issues no request and leaves the chain untouched.
+Browser-level for the visible in-progress indication and for the Enter-key submission path, which the disabled submit button does not cover on its own.
 
 ### T-FR-7-10: The refinement input is fully operable by keyboard alone
 **Priority:** P0
@@ -220,7 +223,9 @@ Model selection interacting with refinement (whether a mid-refinement model swit
 
 ## Open questions
 FR-7 does not state what happens when a second refinement is submitted while the first is still in flight: blocked-until-resolved or superseded-and-cancelled are both plausible readings.
-T-FR-7-9 is written to observe and pin down whichever the implementation does, defaulting to no assumption about which is correct; if the product owner later states a preference, that scenario's Then clause should be tightened to name it exactly.
+Resolved on 2026-07-28 in favor of blocked-until-resolved, and T-FR-7-9's Then clause has been tightened to name it.
+The reasoning is that the review surface already disables its own controls for the duration of a turn, so blocking is the behavior its existing shape implies; superseding would also mean a user who types quickly silently loses the first instruction from the chain, which works against AC-7.2's compounding guarantee.
+This is an implementation-led decision, not a stated product preference, and is worth confirming with the product owner.
 
 FR-7 does not state whether the one-tap actions available on the initial revision request (shorten, change tone, fix grammar) are also offered during refinement, or whether refinement is free-text only.
 The scenarios above assume free-text refinement throughout, since that is the only mechanism the requirement text names; if one-tap actions are also available mid-refinement, an additional happy-path scenario belongs here.

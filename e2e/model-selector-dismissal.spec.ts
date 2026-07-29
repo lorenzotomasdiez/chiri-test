@@ -29,8 +29,11 @@ test('T-CC-MODEL-12: Dropdown dismisses on Escape and outside click, returns foc
   await trigger.click()
   await expect(panel).toBeVisible()
 
-  // Test outside click dismisses without selecting
-  await page.click('[data-testid="editor"]', { position: { x: 200, y: 700 } })
+  // Test outside click dismisses without selecting. The offset only has to be
+  // somewhere inside the document column and nowhere near the panel - the
+  // column is sized to the viewport (CC-SHELL.5), so a y past the fold would
+  // simply not be part of the element to click.
+  await page.click('[data-testid="editor"]', { position: { x: 200, y: 300 } })
   await expect(panel).not.toBeInViewport()
   expect(await trigger.textContent()).toContain('GPT-4o mini')
 
