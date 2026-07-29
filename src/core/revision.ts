@@ -93,7 +93,7 @@ export interface Revision {
   to: number
   /** The model's proposed replacement for [from, to). */
   proposed: string
-  /** Alias of `proposed`, matching `PendingRevision`'s field name in prompt.ts for callers that reach for it under that name. */
+  /** Alias of `proposed`, for callers that reach for the revision's replacement text under that name. */
   proposal?: string
   status: 'pending' | 'accepted' | 'rejected' | 'invalidated' | 'refining'
   /** The text at [from, to) when the revision was requested, for the review surface. */
@@ -191,4 +191,17 @@ export function validateResponseSpan(
       existing: selectedText,
     },
   }
+}
+
+/**
+ * FR-8/AC-6's model-snapshot rule for a refinement turn: the model id
+ * captured on the revision when it was first dispatched wins over whatever
+ * is currently selected, so a model change while a revision is pending never
+ * retargets an in-flight or later refinement turn (T-FR-8-4).
+ */
+export function resolveRefinementModelId(
+  revision: Pick<Revision, 'modelId'>,
+  currentModelId: string,
+): string {
+  return revision.modelId ?? currentModelId
 }
