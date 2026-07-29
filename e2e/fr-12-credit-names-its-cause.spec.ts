@@ -43,6 +43,13 @@ test('T-FR-12-8: Insufficient credit names credit as the cause and leaves the ed
   await expect(failure).toBeVisible({ timeout: 10_000 })
   await expect(failure).toContainText(/credit/i)
 
+  // And per CC-BANNER.6, credit exhaustion is the informational case: no
+  // error-red text and no error icon, just a 2px ink left border and an
+  // `info` icon - the account is fine, only the balance is not.
+  await expect(failure).toHaveClass(/border-ink/)
+  await expect(failure).not.toHaveClass(/text-error/)
+  await expect(failure.locator('use')).toHaveAttribute('href', '/chiri-icons.svg#info')
+
   // And the app has not fallen back to the key gate - AC-12.5 keeps the editor
   // fully usable, because the key works and only the balance does not.
   await expect(page.locator('[data-testid="key-gate-modal"]')).toHaveCount(0)
