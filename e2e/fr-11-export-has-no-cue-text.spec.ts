@@ -26,8 +26,9 @@ test('T-FR-11-2: Exported Markdown from a first-ever session contains no sample 
   const copyButton = page.getByRole('button', { name: 'Copy' })
   await copyButton.click()
 
-  // Verify the Copy button shows confirmation
-  await expect(copyButton).toHaveText('Copied')
+  // Verify the Copy button shows confirmation beside itself, keeping its own label
+  await expect(copyButton).toHaveText('Copy')
+  await expect(page.locator('[data-testid="copy-confirmation"]')).toHaveText('Copied')
 
   // Read from the clipboard and verify it is empty
   const clipboardContent = await page.evaluate(() => navigator.clipboard.readText())
