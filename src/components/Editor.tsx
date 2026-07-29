@@ -278,8 +278,10 @@ export function Editor({
   }, [onDocChange])
 
   // FR-6's action bar: driven off CM6 selection state (never mouseup, so a
-  // keyboard-made selection raises it too) and hidden while a revision is
-  // pending, since at most one revision is in flight at a time (AC-6.13).
+  // keyboard-made selection raises it too). It stays visible while another
+  // revision is pending elsewhere - AC-6.13 requires the second request be
+  // refused with a visible explanation, which needs the bar to still be
+  // there to show it on, not hidden outright (`revisionPending` below).
   const [selection, setSelection] = useState<{ from: number; to: number } | null>(null)
   const [hasPendingRevision, setHasPendingRevision] = useState(false)
   // AC-5.14: a shown continuation must be announced to assistive technology,
@@ -533,7 +535,7 @@ export function Editor({
           ? 'Suggestion available. Press Tab to accept, or keep typing to dismiss.'
           : ''}
       </div>
-      {selection && !hasPendingRevision && viewRef.current && (
+      {selection && viewRef.current && (
         // Keyed on the range itself: without this, jumping straight from one
         // non-empty selection to a different non-empty one (double-click a
         // word, then double-click another) reuses the same component
@@ -545,6 +547,7 @@ export function Editor({
           view={viewRef.current}
           from={selection.from}
           to={selection.to}
+          revisionPending={hasPendingRevision}
         />
       )}
       {/* FR-12's visible half (AC-12.2): every requested failure - a revision
