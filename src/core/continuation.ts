@@ -85,6 +85,11 @@ function isAtEligibleLineEnd(text: string, pos: number): boolean {
 export function isEligible(input: EligibilityInput): boolean {
   const { text, cursorPos, selection, pendingSpan } = input
 
+  // An empty (or whitespace-only) document has no preceding context to
+  // continue from - FR-11's cue applies instead, per fr-5.md's own
+  // preconditions ("non-empty preceding context") and coverage table
+  // ("Document is empty | No continuation, FR-11 cue applies instead").
+  if (text.trim() === '') return false
   if (selection && selection.from !== selection.to) return false
   if (pendingSpan && cursorPos >= pendingSpan.from && cursorPos <= pendingSpan.to) return false
   if (insideFencedCodeBlock(text, cursorPos)) return false
