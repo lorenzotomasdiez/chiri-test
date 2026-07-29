@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Icon } from './Icon'
 import { PredictionsToggle } from './PredictionsToggle'
 import { ModelSelector } from './ModelSelector'
-import { FailureBanner } from './FailureBanner'
 import { useAppStore } from '../state/store'
 import { deriveFilename, toExportText } from '../core/export'
 
@@ -17,25 +16,27 @@ import { deriveFilename, toExportText } from '../core/export'
  * the same document string, which is what makes their output byte-identical
  * rather than merely usually-the-same. Download's filename comes from the
  * same module's `deriveFilename`. A clipboard write that rejects surfaces
- * FR-12's dismissible retry treatment rather than failing silently or
+ * FR-12's dismissible retry treatment (rendered by Editor.tsx, which owns
+ * the app's single FailureBanner mount) rather than failing silently or
  * blocking Download, which reads the document directly and does not touch
  * the clipboard at all.
  */
 export function TopBar() {
   const [copied, setCopied] = useState(false)
-  const [copyFailed, setCopyFailed] = useState(false)
   const documentText = useAppStore((s) => s.documentText)
+  const reportCopyFailure = useAppStore((s) => s.reportCopyFailure)
+  const clearCopyFailure = useAppStore((s) => s.clearCopyFailure)
 
   async function writeToClipboard() {
     const text = toExportText(documentText)
     try {
       await navigator.clipboard.writeText(text)
-      setCopyFailed(false)
+      clearCopyFailure()
       setCopied(true)
       window.setTimeout(() => setCopied(false), 1500)
     } catch {
       setCopied(false)
-      setCopyFailed(true)
+      reportCopyFailure(() => void writeToClipboard())
     }
   }
 
@@ -102,14 +103,6 @@ export function TopBar() {
           </button>
         </div>
       </div>
-
-      {copyFailed && (
-        <FailureBanner
-          message="Couldn't copy to the clipboard."
-          onRetry={() => void writeToClipboard()}
-          onDismiss={() => setCopyFailed(false)}
-        />
-      )}
     </header>
   )
 }

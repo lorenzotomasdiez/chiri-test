@@ -221,6 +221,9 @@ export function Editor({
   const requestFailureMessage = useAppStore((s) => s.requestFailureMessage)
   const requestRetry = useAppStore((s) => s.requestRetry)
   const clearRequestFailure = useAppStore((s) => s.clearRequestFailure)
+  const copyFailed = useAppStore((s) => s.copyFailed)
+  const copyRetry = useAppStore((s) => s.copyRetry)
+  const clearCopyFailure = useAppStore((s) => s.clearCopyFailure)
   useEffect(() => {
     onDocChangeRef.current = onDocChange
   }, [onDocChange])
@@ -450,12 +453,15 @@ export function Editor({
       {selection && !hasPendingRevision && viewRef.current && (
         <SelectionActionBar view={viewRef.current} from={selection.from} to={selection.to} />
       )}
-      {/* FR-12's visible half (AC-12.2): every requested failure - a revision
-          or a refinement - surfaces here, dismissible and retryable. Rendered
-          alongside the document rather than over it, so AC-12.1's sibling
-          promise holds too: typing carries on underneath while it is showing
-          (T-FR-12-15). */}
-      {requestFailureMessage && (
+      {/* FR-12's visible half (AC-12.2): every requested failure - a revision,
+          a refinement, or TopBar's clipboard write - surfaces here, and only
+          here, dismissible and retryable. Rendered alongside the document
+          rather than over it, so AC-12.1's sibling promise holds too: typing
+          carries on underneath while it is showing (T-FR-12-15). A request
+          failure takes priority over a stale copy failure on the rare chance
+          both are pending at once - there is one banner, never a stack of
+          them. */}
+      {requestFailureMessage ? (
         <FailureBanner
           message={requestFailureMessage}
           onRetry={() => {
@@ -465,6 +471,18 @@ export function Editor({
           }}
           onDismiss={clearRequestFailure}
         />
+      ) : (
+        copyFailed && (
+          <FailureBanner
+            message="Couldn't copy to the clipboard."
+            onRetry={() => {
+              const retry = copyRetry
+              clearCopyFailure()
+              retry?.()
+            }}
+            onDismiss={clearCopyFailure}
+          />
+        )
       )}
     </>
   )
