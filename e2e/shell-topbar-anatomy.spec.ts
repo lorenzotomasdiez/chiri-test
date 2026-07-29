@@ -43,10 +43,10 @@ test('T-CC-NAV-1: Top bar anatomy, control order, and labels (CC-BRAND.1, CC-BRA
   expect(computedStyle.paddingRight).toBe('24px')
   expect(computedStyle.backgroundColor).toBe('rgb(253, 248, 248)')
 
-  // Assert bottom border is 1px in hairline colour
+  // Assert bottom border is 1px in hairline colour at CC-NAV.1's 30% opacity
   // hairline colour is #C7C6CA = rgb(199, 198, 202)
   expect(computedStyle.borderBottom).toContain('1px')
-  expect(computedStyle.borderBottom).toContain('rgb(199, 198, 202)')
+  expect(computedStyle.borderBottom).toContain('rgba(199, 198, 202, 0.3)')
 
   // Assert wordmark - plain text "Chiri" at far left
   const wordmark = banner.locator('text=Chiri').first()
@@ -122,7 +122,7 @@ test('T-CC-NAV-1: Top bar anatomy, control order, and labels (CC-BRAND.1, CC-BRA
 
   // Divider should be 1px wide with hairline colour
   expect(dividerStyle.width).toBe('1px')
-  expect(dividerStyle.borderLeft).toContain('rgb(199, 198, 202)')
+  expect(dividerStyle.borderLeft).toContain('rgba(199, 198, 202, 0.3)')
 
   // Assert Copy and Download buttons have icons and text labels
   const copyButton = controls.filter({ hasText: 'Copy' }).first()

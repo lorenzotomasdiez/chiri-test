@@ -61,7 +61,7 @@ export function TopBar() {
     <header
       role="banner"
       className="fixed top-0 left-0 z-10 flex h-12 w-full items-center justify-between border-b border-hairline bg-paper px-6"
-      style={{ borderBottomColor: '#C7C6CA' }}
+      style={{ borderBottomColor: 'rgb(199 198 202 / 0.3)' }}
     >
       <span className="select-none text-[18px] font-semibold tracking-tight text-ink">Chiri</span>
 
@@ -72,7 +72,7 @@ export function TopBar() {
         <div
           role="separator"
           aria-orientation="vertical"
-          style={{ width: 1, height: 16, borderLeft: '1px solid #C7C6CA' }}
+          style={{ width: 1, height: 16, borderLeft: '1px solid rgb(199 198 202 / 0.3)' }}
         />
 
         <div className="flex items-center gap-4">

@@ -73,7 +73,7 @@ test('T-CC-MODEL-5: Model dropdown panel anatomy and selection (CC-MODEL.1, CC-M
   const panelBorderColor = await panel.evaluate((el) =>
     window.getComputedStyle(el).borderColor,
   )
-  expect(panelBorderColor).toBe('rgb(199, 198, 202)') // hairline color #C7C6CA
+  expect(panelBorderColor).toBe('rgba(199, 198, 202, 0.3)') // hairline color #C7C6CA at CC-MODEL.5's 30% opacity
 
   // CC-MODEL.11: Verify panel does not scroll
   const scrollHeight = await panel.evaluate((el) => el.scrollHeight)

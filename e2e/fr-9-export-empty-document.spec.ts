@@ -1,9 +1,11 @@
 import { test, expect } from '@playwright/test'
 import { seedValidatedKey } from './seed'
+import { mockClipboard } from './clipboard'
 import * as fs from 'fs'
 
 test.beforeEach(async ({ page }) => {
   await seedValidatedKey(page)
+  await mockClipboard(page)
   await page.setViewportSize({ width: 1280, height: 800 })
   await page.goto('/')
   await page.waitForSelector('[data-testid="editor"] .cm-content')
