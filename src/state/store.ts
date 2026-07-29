@@ -42,7 +42,10 @@ export interface AppState {
    * refinement widget is a plain WidgetType outside React and cannot hold
    * React state at all, and two independent failure surfaces would be free to
    * contradict each other on screen. Whatever mounts FailureBanner
-   * (Editor.tsx) reads these back out.
+   * (Editor.tsx) reads these back out, including TopBar's clipboard failure
+   * below - it used to hold its own local `copyFailed` state and mount a
+   * second FailureBanner, which could overlap this one at the same fixed
+   * position when both were true at once.
    *
    * Continuation never writes here. Its failures are silent by class
    * (AC-12.1), and `reportRequestFailure` is not on its path.
@@ -57,6 +60,18 @@ export interface AppState {
    */
   reportRequestFailure: (error: unknown, retry: () => void) => void
   clearRequestFailure: () => void
+  /**
+   * TopBar's clipboard-write failure, routed through the same one-banner
+   * surface as requestFailureMessage above rather than a component-local
+   * FailureBanner mount. Not a request failure - clipboard errors never go
+   * through classifyRequestFailure or route to the key gate - so it gets its
+   * own message/retry pair, but Editor.tsx still renders at most one banner,
+   * preferring a request failure if both are pending at once.
+   */
+  copyFailed: boolean
+  copyRetry: (() => void) | null
+  reportCopyFailure: (retry: () => void) => void
+  clearCopyFailure: () => void
   /**
    * AC-12.4 from the silent side: a continuation request found the stored key
    * rejected. Nothing is shown for the failure itself, but the gate still
@@ -131,6 +146,10 @@ export const useAppStore = create<AppState>((set) => {
     },
     clearRequestFailure: () =>
       set({ requestFailureMessage: null, requestFailureKind: null, requestRetry: null }),
+    copyFailed: false,
+    copyRetry: null,
+    reportCopyFailure: (retry) => set({ copyFailed: true, copyRetry: retry }),
+    clearCopyFailure: () => set({ copyFailed: false, copyRetry: null }),
     reportSilentFailure: (error) => {
       if (isAbort(error)) return
       if (!classifyRequestFailure(error).routesToKeyGate) return
