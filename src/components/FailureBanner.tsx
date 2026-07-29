@@ -26,7 +26,7 @@ export function FailureBanner({ message, onRetry, onDismiss }: FailureBannerProp
         type="button"
         data-testid="retry-button"
         onClick={onRetry}
-        className="rounded text-[14px] text-ink underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        className="shrink-0 rounded bg-ink px-3 py-1 text-xs font-medium text-white transition-opacity duration-200 hover:opacity-90 active:opacity-75 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ink focus-visible:ring-offset-1 focus-visible:ring-offset-panel"
       >
         Retry
       </button>
