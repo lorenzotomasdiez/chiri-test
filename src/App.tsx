@@ -79,7 +79,7 @@ export default function App() {
               // appearing later.
               id={ONBOARDING_CUE_ID}
               data-testid="onboarding-cue"
-              className="pointer-events-none absolute top-0 left-0 text-ink"
+              className="pointer-events-none absolute top-0 left-0 text-muted"
               style={{ opacity: 0.4 }}
             >
               Start writing. When grey text appears, press Tab to take it.
