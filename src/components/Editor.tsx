@@ -130,6 +130,31 @@ const isolateProgrammaticEdits = EditorState.transactionExtender.of((tr) => {
   return { annotations: isolateHistory.of('full') }
 })
 
+// WebKit's contenteditable undo manager delivers a single Cmd-Z/Cmd-Shift-Z
+// keypress as a burst of several `beforeinput` events with inputType
+// 'historyUndo'/'historyRedo', a few milliseconds apart - the very path
+// @codemirror/commands' history() extension listens on to call undo()/
+// redo(). history() runs one undo per event, so on WebKit one keypress
+// silently pops multiple steps off the stack (AC-3.3, AC-6.8's single-step
+// guarantee). A real repeated keypress (holding the key down) is throttled
+// by the OS's key-repeat rate, which never gets close to this fast even at
+// its fastest setting, so events within this window are the same physical
+// keypress and only the first is let through to history().
+const NATIVE_HISTORY_INPUT_BURST_WINDOW_MS = 50
+let lastHistoryInputAt = -Infinity
+const dedupeNativeHistoryInput = EditorView.domEventHandlers({
+  beforeinput(event) {
+    if (event.inputType !== 'historyUndo' && event.inputType !== 'historyRedo') return false
+    const now = performance.now()
+    if (now - lastHistoryInputAt < NATIVE_HISTORY_INPUT_BURST_WINDOW_MS) {
+      event.preventDefault()
+      return true
+    }
+    lastHistoryInputAt = now
+    return false
+  },
+})
+
 /**
  * A programmatic accept transaction (dispatched with only `changes`, no
  * explicit `selection`, exactly how an FR-6 accept commits it) maps the
@@ -241,6 +266,7 @@ export function Editor({
           Math.max(0, Math.min(initialCaretOffset, initialDoc.length)),
         ),
         extensions: [
+          dedupeNativeHistoryInput,
           history(),
           isolateProgrammaticEdits,
           drawSelection(),
