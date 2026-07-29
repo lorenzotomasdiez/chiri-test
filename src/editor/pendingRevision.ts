@@ -323,16 +323,18 @@ class RevisionWidget extends WidgetType {
     // `opacity: 0` alias fields below are positioned against.
     refineRow.style.position = 'relative'
 
-    // The turn marker from the reference, as a glyph rather than an icon font
-    // (CUT.1 - no second webfont is loaded).
-    const turnMarker = document.createElement('span')
-    turnMarker.textContent = '↳'
+    // The turn marker from the reference, rendered from the closed icon set's
+    // subdirectory_arrow_right sprite (CC-ICON.3) rather than a raw glyph.
+    const turnMarker = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
     turnMarker.setAttribute('aria-hidden', 'true')
-    turnMarker.style.fontSize = '12px'
-    turnMarker.style.lineHeight = '1'
+    turnMarker.setAttribute('width', '14')
+    turnMarker.setAttribute('height', '14')
     turnMarker.style.opacity = '0.4'
     turnMarker.style.color = '#1D1D1F'
     turnMarker.style.flexShrink = '0'
+    const turnMarkerUse = document.createElementNS('http://www.w3.org/2000/svg', 'use')
+    turnMarkerUse.setAttribute('href', '/chiri-icons.svg#subdirectory_arrow_right')
+    turnMarker.appendChild(turnMarkerUse)
     refineRow.appendChild(turnMarker)
 
     function makeInstructionInput(testId: string, primary: boolean): HTMLInputElement {

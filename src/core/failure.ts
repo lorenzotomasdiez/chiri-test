@@ -34,12 +34,28 @@ export class MalformedResponseError extends Error {
   }
 }
 
+/**
+ * AC-6.11's "target span no longer exists when the response arrives" row: an
+ * edit removed the text a revision was requested over before the response
+ * came back. Its own class, like `MalformedResponseError`, so the classifier
+ * names it directly rather than string-matching, and so the request is
+ * surfaced as failed even though nothing about the HTTP exchange itself
+ * failed.
+ */
+export class SpanDestroyedError extends Error {
+  constructor(message = 'The selected text changed before the revision finished') {
+    super(message)
+    this.name = 'SpanDestroyedError'
+  }
+}
+
 export type RequestFailureKind =
   | 'network'
   | 'rate-limit'
   | 'credit'
   | 'key-rejected'
   | 'malformed'
+  | 'span-destroyed'
   | 'unknown'
 
 export interface RequestFailure {
@@ -70,6 +86,7 @@ const MESSAGES: Record<RequestFailureKind, string> = {
   credit: 'The request did not complete: your OpenRouter account is out of credit.',
   'key-rejected': 'That key was rejected by OpenRouter.',
   malformed: 'The request did not complete: the response was incomplete.',
+  'span-destroyed': 'The selected text changed before the revision finished.',
   unknown: 'The request did not complete.',
 }
 
@@ -129,6 +146,7 @@ export function isAbort(error: unknown): boolean {
  */
 export function classifyRequestFailure(error: unknown): RequestFailure {
   if (error instanceof MalformedResponseError) return failure('malformed')
+  if (error instanceof SpanDestroyedError) return failure('span-destroyed')
 
   const status = readStatus(error)
   if (status === 401 || status === 403) return failure('key-rejected')

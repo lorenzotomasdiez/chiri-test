@@ -25,6 +25,7 @@ import { SelectionActionBar } from './SelectionActionBar'
 import { FailureBanner } from './FailureBanner'
 import { useAppStore } from '../state/store'
 import { createContinuationTransport } from '../net/openrouter'
+import { SpanDestroyedError } from '../core/failure'
 
 const theme = EditorView.theme({
   // CC-SHELL.5/.6: deliberately no height at all. A height here would make
@@ -230,6 +231,10 @@ export function Editor({
   // pending, since at most one revision is in flight at a time (AC-6.13).
   const [selection, setSelection] = useState<{ from: number; to: number } | null>(null)
   const [hasPendingRevision, setHasPendingRevision] = useState(false)
+  // Mirrors `selection` for the updateListener below, which is created once
+  // inside the view-construction effect and would otherwise only ever see
+  // the `null` it closed over on the first render.
+  const selectionRef = useRef<{ from: number; to: number } | null>(null)
 
   useEffect(() => {
     if (!host.current) return
@@ -307,8 +312,47 @@ export function Editor({
               onDocChangeRef.current?.(u.state.doc.toString(), u.state.selection.main.head)
             }
             if (u.selectionSet || u.docChanged) {
+              const prevSelection = selectionRef.current
               const main = u.state.selection.main
-              setSelection(main.empty ? null : { from: main.from, to: main.to })
+              // AC-6.2/T-FR-6-17: a selection covering only whitespace has no
+              // visible characters to revise, so it raises no action bar,
+              // same as a collapsed (empty) selection.
+              const isWhitespaceOnly =
+                !main.empty && u.state.doc.sliceString(main.from, main.to).trim().length === 0
+              const nextSelection =
+                main.empty || isWhitespaceOnly ? null : { from: main.from, to: main.to }
+
+              // T-FR-6-20/AC-6.11: an edit that removes the entire span a
+              // revision is in flight for collapses the selection exactly
+              // like the user deliberately clearing it does (T-FR-6-13), so
+              // this is the only point that can tell the two apart - by
+              // whether this transaction's own changes touched the span a
+              // request was actually reading.
+              if (nextSelection === null && prevSelection && u.docChanged) {
+                let touchesSpan = false
+                for (const tr of u.transactions) {
+                  tr.changes.iterChanges((fromA, toA) => {
+                    if (fromA <= prevSelection.to && toA >= prevSelection.from) touchesSpan = true
+                  })
+                }
+                const active = useAppStore.getState().activeRevisionSpan
+                if (
+                  touchesSpan &&
+                  active &&
+                  active.from === prevSelection.from &&
+                  active.to === prevSelection.to
+                ) {
+                  useAppStore.getState().setActiveRevisionSpan(null)
+                  useAppStore
+                    .getState()
+                    .reportRequestFailure(new SpanDestroyedError(), () =>
+                      useAppStore.getState().clearRequestFailure(),
+                    )
+                }
+              }
+
+              selectionRef.current = nextSelection
+              setSelection(nextSelection)
             }
             if (u.docChanged || u.transactions.some((tr) => tr.effects.length > 0)) {
               setHasPendingRevision(u.state.field(pendingSpanField, false) != null)

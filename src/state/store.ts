@@ -37,6 +37,20 @@ export interface AppState {
   apiKey: string
 
   /**
+   * T-FR-6-20/AC-6.11: the span a revision request is currently in flight
+   * for, so `Editor.tsx`'s selection listener can tell "the user cleared the
+   * selection" (T-FR-6-13, silent) apart from "an edit destroyed the exact
+   * text the in-flight request was reading" (T-FR-6-20, surfaced as a
+   * failure) - both collapse the CM6 selection to empty identically, and
+   * that is the only signal available at the point the selection is nulled.
+   * Compared by identity, not by value, so a second request started after
+   * this one finishes never gets clobbered by a late check against the
+   * first.
+   */
+  activeRevisionSpan: { from: number; to: number } | null
+  setActiveRevisionSpan: (span: { from: number; to: number } | null) => void
+
+  /**
    * FR-12's visible-failure surface for requested work - revisions (AC-12.2)
    * and refinements (AC-7.6) alike. One banner, not one per caller: the
    * refinement widget is a plain WidgetType outside React and cannot hold
@@ -105,6 +119,9 @@ export const useAppStore = create<AppState>((set) => {
     setDocumentText: (text) => set({ documentText: text }),
 
     apiKey: settingsHandle.settings.apiKey,
+
+    activeRevisionSpan: null,
+    setActiveRevisionSpan: (span) => set({ activeRevisionSpan: span }),
 
     requestFailureMessage: null,
     requestFailureKind: null,
