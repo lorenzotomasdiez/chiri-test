@@ -88,10 +88,13 @@ export function ModelSelector() {
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         onClick={() => (isOpen ? close() : open())}
-        className="flex items-center gap-1 rounded px-1 text-[14px] text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        className="group flex items-center gap-1 rounded px-1 text-[14px] text-ink transition-colors duration-150 hover:bg-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
       >
         {selected.displayName}
-        <Icon name="expand_more" className="text-outline text-[14px]" />
+        <Icon
+          name="expand_more"
+          className="text-outline text-[14px] opacity-70 transition-opacity duration-150 group-hover:opacity-100"
+        />
       </button>
 
       {isOpen && (
