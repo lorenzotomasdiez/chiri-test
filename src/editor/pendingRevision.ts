@@ -391,17 +391,16 @@ class RevisionWidget extends WidgetType {
     submitButton.style.letterSpacing = '-0.01em'
     submitButton.style.whiteSpace = 'nowrap'
     submitButton.style.cursor = 'pointer'
-    submitButton.style.color = '#46464A'
-    submitButton.style.opacity = '0.6'
+    submitButton.style.color = 'rgba(70, 70, 74, 0.6)'
     submitButton.style.textUnderlineOffset = '4px'
-    submitButton.style.transition = 'opacity 200ms ease'
+    submitButton.style.transition = 'color 200ms ease'
     submitButton.style.flexShrink = '0'
     bindFocusRing(submitButton)
     submitButton.addEventListener('mouseenter', () => {
-      if (!submitButton.disabled) submitButton.style.opacity = '1'
+      if (!submitButton.disabled) submitButton.style.color = '#1D1D1F'
     })
     submitButton.addEventListener('mouseleave', () => {
-      submitButton.style.opacity = '0.6'
+      submitButton.style.color = 'rgba(70, 70, 74, 0.6)'
     })
     submitButton.addEventListener('mousedown', (event) => event.preventDefault())
     refineRow.appendChild(submitButton)
