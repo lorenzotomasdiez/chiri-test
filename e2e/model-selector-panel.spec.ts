@@ -92,7 +92,7 @@ test('T-CC-MODEL-5: Model dropdown panel anatomy and selection (CC-MODEL.1, CC-M
   const row1Note = row1.locator('[data-testid="model-row-note"]')
 
   await expect(row1Title).toHaveText('GPT-4o mini')
-  await expect(row1Note).toHaveText('fast, low cost')
+  await expect(row1Note).toHaveText('- fast, low cost')
 
   // Verify no slug in row 1
   const row1Text = await row1.textContent()
@@ -110,7 +110,7 @@ test('T-CC-MODEL-5: Model dropdown panel anatomy and selection (CC-MODEL.1, CC-M
   const row2Note = row2.locator('[data-testid="model-row-note"]')
 
   await expect(row2Title).toHaveText('GPT-4o')
-  await expect(row2Note).toHaveText('stronger reasoning, slower')
+  await expect(row2Note).toHaveText('- stronger reasoning, slower')
   const row2Text = await row2.textContent()
   expect(row2Text).not.toMatch(/openai\//)
 
@@ -120,7 +120,7 @@ test('T-CC-MODEL-5: Model dropdown panel anatomy and selection (CC-MODEL.1, CC-M
   const row3Note = row3.locator('[data-testid="model-row-note"]')
 
   await expect(row3Title).toHaveText('GPT-4.1')
-  await expect(row3Note).toHaveText('large context')
+  await expect(row3Note).toHaveText('- large context')
   const row3Text = await row3.textContent()
   expect(row3Text).not.toMatch(/openai\//)
 

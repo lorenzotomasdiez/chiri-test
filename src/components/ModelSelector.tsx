@@ -144,8 +144,11 @@ export function ModelSelector() {
                   >
                     {model.displayName}
                   </div>
-                  <div data-testid="model-row-note" style={{ fontSize: 10, color: '#46464A' }}>
-                    {model.capabilityNote}
+                  <div
+                    data-testid="model-row-note"
+                    style={{ fontSize: 10, color: 'rgb(70 70 74 / 0.6)' }}
+                  >
+                    - {model.capabilityNote}
                   </div>
                 </div>
                 {isSelected && (
