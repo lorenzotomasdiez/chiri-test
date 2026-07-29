@@ -66,6 +66,13 @@ export function ModelSelector() {
       const target = e.target as Node
       if (panelRef.current?.contains(target) || triggerRef.current?.contains(target)) return
       close()
+      // Deferred: CodeMirror's own mousedown handling (bound directly on the
+      // editor DOM node) places focus/caret as part of the same gesture, so
+      // focusing the trigger inline here would be immediately overridden.
+      // requestAnimationFrame lets that settle first, matching CC-MODEL.12's
+      // unconditional focus-return even when the outside click lands in the
+      // editor.
+      requestAnimationFrame(() => triggerRef.current?.focus())
     }
 
     document.addEventListener('keydown', onKeyDown)
