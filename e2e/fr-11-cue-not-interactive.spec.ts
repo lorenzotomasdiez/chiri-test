@@ -58,13 +58,19 @@ test('T-FR-11-3: the cue is not interactive and never blocks input', async ({ pa
 
   // Press Tab and Enter without typing - focus should not be trapped on the cue
   await page.keyboard.press('Tab')
-  await page.keyboard.press('Enter')
   expect(await focusedElementTestId(page)).not.toBe('onboarding-cue')
+  await page.keyboard.press('Enter')
 
-  // Type 'A' and verify it goes into the document immediately without extra steps
+  // None of that changed the cue's own state
+  await expect(cueLocator).toHaveCount(1)
+  expect(await cueLocator.textContent()).toBe(cueText)
+
+  // Clicking back into the editor and typing 'A' goes into the document
+  // immediately, with no dismissal step of its own
+  await page.locator('[data-testid="editor"] .cm-content').click()
   await page.keyboard.type('A')
   expect(await docText(page)).toBe('A')
 
-  // Cue is still present but now hidden since document is no longer empty
+  // Cue is now hidden since the document is no longer empty
   await expect(cueLocator).toHaveCount(0)
 })

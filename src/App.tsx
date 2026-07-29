@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react'
-import { Editor } from './components/Editor'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { TopBar } from './components/TopBar'
 import { KeyGateModal } from './components/KeyGateModal'
 import { LaunchSplash } from './components/LaunchSplash'
@@ -7,6 +6,16 @@ import { useLaunchDwell } from './hooks/useLaunchDwell'
 import { useLaunchKeyBuffer } from './hooks/useLaunchKeyBuffer'
 import { usePersistDocument } from './hooks/usePersistDocument'
 import { useAppStore } from './state/store'
+
+// CodeMirror and its language/command packages are the bulk of the bundle
+// (dist/assets/index-*.js was 742 kB). The launch splash's own
+// SPLASH_MIN_DWELL_MS floor gives the browser a guaranteed window to fetch
+// this chunk in the background while something is already on screen, instead
+// of it blocking the very first paint. Starting the import at module scope -
+// rather than inside the lazy() factory - means the fetch begins the instant
+// App.tsx runs, not the instant <Editor> is first rendered.
+const editorModule = import('./components/Editor')
+const Editor = lazy(() => editorModule.then((m) => ({ default: m.Editor })))
 
 /** Shared by the cue's `id` and the editor's `aria-describedby`, so the two cannot drift apart. */
 const ONBOARDING_CUE_ID = 'onboarding-cue'
@@ -85,20 +94,22 @@ export default function App() {
               Start writing. When grey text appears, press Tab to take it.
             </p>
           )}
-          <Editor
-            initialDoc={initialDoc}
-            initialCaretOffset={initialCaretOffset}
-            // Only while the cue is actually rendered. Left pointing at it
-            // once the document has content, the editor would describe itself
-            // by an element that no longer exists.
-            describedById={empty && unblocked ? ONBOARDING_CUE_ID : undefined}
-            onDocChange={(text, caretOffset) => {
-              setTypedEmpty(text.length === 0)
-              setDocumentText(text)
-              onDocChange(text, caretOffset)
-            }}
-            editable={unblocked}
-          />
+          <Suspense fallback={null}>
+            <Editor
+              initialDoc={initialDoc}
+              initialCaretOffset={initialCaretOffset}
+              // Only while the cue is actually rendered. Left pointing at it
+              // once the document has content, the editor would describe itself
+              // by an element that no longer exists.
+              describedById={empty && unblocked ? ONBOARDING_CUE_ID : undefined}
+              onDocChange={(text, caretOffset) => {
+                setTypedEmpty(text.length === 0)
+                setDocumentText(text)
+                onDocChange(text, caretOffset)
+              }}
+              editable={unblocked}
+            />
+          </Suspense>
         </div>
       </main>
       {!unblocked && <KeyGateModal />}
