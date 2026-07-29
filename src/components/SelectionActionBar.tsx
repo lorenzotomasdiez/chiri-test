@@ -34,7 +34,16 @@ interface SelectionActionBarProps {
   view: EditorView
   from: number
   to: number
+  /**
+   * AC-6.13: another revision is already pending elsewhere in the document.
+   * At most one revision is in flight at a time, so a request from this bar
+   * is refused with a visible message rather than issued.
+   */
+  revisionPending?: boolean
 }
+
+const PENDING_REVISION_MESSAGE =
+  'A revision is already pending. Resolve it before requesting another.'
 
 /**
  * The floating action bar raised over a non-empty selection (AC-6.2), a
@@ -45,7 +54,12 @@ interface SelectionActionBarProps {
  * rectangles are read from, and always below the selection so it never
  * covers the text it refers to.
  */
-export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) {
+export function SelectionActionBar({
+  view,
+  from,
+  to,
+  revisionPending = false,
+}: SelectionActionBarProps) {
   const [instruction, setInstruction] = useState('')
   const [message, setMessage] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -67,6 +81,13 @@ export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) 
     // the retry closure handed to the failure banner, and by the time the user
     // clicks Retry the `busy` this closure captured is several renders old.
     if (busyRef.current) return
+    // AC-6.13: a revision is already pending over some other span. Refuse
+    // outright, the same shape as the paragraph-count guard below, rather
+    // than issuing a second request that would have nowhere valid to land.
+    if (revisionPending) {
+      setMessage(PENDING_REVISION_MESSAGE)
+      return
+    }
     const selectedText = view.state.sliceDoc(from, to)
     const guard = checkParagraphCount(selectedText)
     if (guard.kind === 'refused') {
