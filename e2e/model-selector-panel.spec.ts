@@ -173,3 +173,32 @@ test('T-CC-MODEL-5: Model dropdown panel anatomy and selection (CC-MODEL.1, CC-M
   const checkIconRow1 = row1Reopened.locator('[data-testid="check-icon"]')
   await expect(checkIconRow1).toHaveCount(0)
 })
+
+test('T-CC-MODEL-9: Selected row keeps its container fill once the highlight moves away (CC-MODEL.9, CC-MODEL.10)', async ({
+  page,
+}) => {
+  const trigger = page.locator('[data-testid="model-selector-trigger"]')
+  await trigger.click()
+
+  const panel = page.locator('[data-testid="model-selector-panel"]')
+  await expect(panel).toBeVisible()
+  const rows = panel.locator('[data-testid="model-row"]')
+  const selectedRow = rows.nth(0)
+  const otherRow = rows.nth(2)
+
+  // Move the keyboard highlight away from the selected row (index 0) onto a
+  // different, unselected row.
+  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('ArrowDown')
+
+  // CC-MODEL.9: the selected row still carries the container fill even
+  // though it is no longer the highlighted row.
+  const selectedRowBg = await selectedRow.evaluate((el) => window.getComputedStyle(el).backgroundColor)
+  expect(selectedRowBg).toBe('rgb(241, 237, 236)')
+  await expect(selectedRow.locator('[data-testid="check-icon"]')).toBeVisible()
+
+  // CC-MODEL.10: the highlighted-but-unselected row gets the same fill.
+  const highlightedRowBg = await otherRow.evaluate((el) => window.getComputedStyle(el).backgroundColor)
+  expect(highlightedRowBg).toBe('rgb(241, 237, 236)')
+  await expect(otherRow.locator('[data-testid="check-icon"]')).toHaveCount(0)
+})
