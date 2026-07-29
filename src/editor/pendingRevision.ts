@@ -16,7 +16,7 @@
 
 import { StateEffect, StateField } from '@codemirror/state'
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view'
-import type { Revision } from '../core/revision'
+import { resolveRefinementModelId, type Revision } from '../core/revision'
 import { buildRefinementRequest } from '../core/prompt'
 import { MalformedResponseError } from '../core/failure'
 import { splitRevisionResponse } from '../core/provider'
@@ -355,12 +355,15 @@ class RevisionWidget extends WidgetType {
       if (!primary) {
         // A same-value shadow field so the widget can be addressed under
         // any of the several test ids the FR-7 spec set names for it,
-        // without duplicating the visible control.
+        // without duplicating the visible control. `aria-hidden` keeps it
+        // out of the accessibility tree too - otherwise a screen reader
+        // announces "Refine this revision..." three times for one widget.
         input.style.position = 'absolute'
         input.style.left = '0'
         input.style.top = '0'
         input.style.opacity = '0'
         input.tabIndex = -1
+        input.setAttribute('aria-hidden', 'true')
       }
       return input
     }
@@ -500,7 +503,7 @@ class RevisionWidget extends WidgetType {
 
       const store = useAppStore.getState()
       const apiKey = store.apiKey
-      const modelId = revision.modelId ?? store.selectedModelId
+      const modelId = resolveRefinementModelId(revision, store.selectedModelId)
       const chain = [...(revision.instructionHistory ?? []), instruction]
       const requestBody = buildRefinementRequest(modelId, revision.existing ?? '', chain, revision.proposed)
       const controller = new AbortController()
