@@ -99,6 +99,7 @@ export function ModelSelector() {
           ref={panelRef}
           data-testid="model-selector-panel"
           role="listbox"
+          aria-activedescendant={`model-row-${MODELS[highlightedIndex]?.id}`}
           style={{
             // Flush to the bottom of the 48px bar, right-aligned to the
             // trigger rather than to the viewport gutter. CC-MODEL.5's
@@ -122,9 +123,10 @@ export function ModelSelector() {
             return (
               <div
                 key={model.id}
+                id={`model-row-${model.id}`}
                 data-testid="model-row"
                 role="option"
-                aria-selected={isHighlighted}
+                aria-selected={isSelected}
                 onMouseEnter={() => setHighlightedIndex(index)}
                 onClick={() => commit(index)}
                 style={{

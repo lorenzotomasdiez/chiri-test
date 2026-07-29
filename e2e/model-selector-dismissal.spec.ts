@@ -46,10 +46,14 @@ test('T-CC-MODEL-12: Dropdown dismisses on Escape and outside click, returns foc
   await page.keyboard.press('ArrowDown')
   await page.keyboard.press('ArrowDown')
 
-  // Verify the third row is highlighted
+  // Verify the third row is highlighted: keyboard focus is exposed via the
+  // listbox's aria-activedescendant, not aria-selected, which is reserved
+  // for the actually-committed selection (still the first row at this point).
   const options = page.locator('div[role="option"]')
   const thirdOption = options.nth(2)
-  await expect(thirdOption).toHaveAttribute('aria-selected', 'true')
+  const thirdOptionId = await thirdOption.getAttribute('id')
+  await expect(panel).toHaveAttribute('aria-activedescendant', thirdOptionId!)
+  await expect(thirdOption).toHaveAttribute('aria-selected', 'false')
 
   // Press Enter to select
   await page.keyboard.press('Enter')
