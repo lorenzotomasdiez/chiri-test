@@ -83,3 +83,49 @@ test('T-FR-6-2: Selecting text raises the action bar with all three entry points
     expect(isAbove || isBelow).toBeTruthy()
   }
 })
+
+test('CC-PANEL.5: Escape dismisses the action bar and collapses the selection', async ({
+  page,
+}) => {
+  const fullText = 'The report was late because the team was busy.'
+  await page.locator('.cm-content').click()
+  await page.keyboard.type(fullText)
+
+  await page.evaluate(() => {
+    const editor = (window as unknown as { __editor: EditorView }).__editor
+    editor.dispatch({ selection: { anchor: 28, head: 45 } })
+  })
+
+  const actionBar = page.locator('[data-testid="selection-action-bar"]')
+  await expect(actionBar).toBeVisible()
+
+  await page.keyboard.press('Escape')
+
+  await expect(actionBar).not.toBeVisible()
+  const isEmpty = await page.evaluate(() => {
+    const editor = (window as unknown as { __editor: EditorView }).__editor
+    return editor.state.selection.main.empty
+  })
+  expect(isEmpty).toBe(true)
+})
+
+test('CC-PANEL.5: A click outside the bar and the editor dismisses the action bar', async ({
+  page,
+}) => {
+  const fullText = 'The report was late because the team was busy.'
+  await page.locator('.cm-content').click()
+  await page.keyboard.type(fullText)
+
+  await page.evaluate(() => {
+    const editor = (window as unknown as { __editor: EditorView }).__editor
+    editor.dispatch({ selection: { anchor: 28, head: 45 } })
+  })
+
+  const actionBar = page.locator('[data-testid="selection-action-bar"]')
+  await expect(actionBar).toBeVisible()
+
+  // The top bar sits well outside both the action bar and the editor.
+  await page.locator('header').click({ position: { x: 5, y: 5 } })
+
+  await expect(actionBar).not.toBeVisible()
+})
