@@ -110,6 +110,16 @@ const theme = EditorView.theme({
   },
   '.cm-lp-hr': { color: '#77767B' },
   '.cm-lp-listitem': { paddingLeft: '24px' },
+  // CC-DOC.5: the disc is dropped entirely in favor of an em-width dash in
+  // the ghost color, pulled back into the 24px indent set above so it sits
+  // in the left gutter rather than at the text's own left edge.
+  '.cm-lp-list-dash': {
+    display: 'inline-block',
+    width: '1em',
+    marginLeft: '-16px',
+    marginRight: '8px',
+    color: '#77767B',
+  },
 
   // FR-5's ghost continuation (AC-5.1): grey, never mistakable for
   // committed text, painted as a widget rather than document content.
