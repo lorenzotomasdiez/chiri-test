@@ -26,6 +26,13 @@ test('T-FR-2-8: typing during the launch state loses no input (AC-2.4)', async (
   // Wait for the dwell to elapse and the transition to complete
   await expect(page.getByTestId('launch-splash')).toHaveCount(0)
 
+  // The editor is lazy-loaded (its chunk fetches in the background during the
+  // dwell), so it can mount one tick after the splash unmounts rather than in
+  // the same commit - wait for it rather than racing it.
+  await page.waitForFunction(
+    () => !!(window as unknown as { __editor?: unknown }).__editor,
+  )
+
   // Then the keystrokes are replayed into the editor document, not lost (AC-2.4)
   const doc = await page.evaluate(
     () => (window as unknown as { __editor?: { state: { doc: { toString(): string } } } }).__editor?.state.doc.toString(),
