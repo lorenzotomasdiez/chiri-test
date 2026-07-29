@@ -27,6 +27,9 @@ async function expectGateWithDocumentIntact(page: Page) {
   // ...but the document was never the network's to damage: it is still there,
   // behind the gate, exactly as it was.
   expect(await docText(page)).toBe(DOC)
+  // GAP.4: re-entering the gate mid-session is a different moment than the
+  // first-run gate, and its copy says so instead of repeating the first-run line.
+  await expect(page.locator('#key-gate-heading')).toHaveText('Your key stopped working')
 }
 
 test('T-FR-12-7 (revision): A rejected key raises the key gate, not a revision failure', async ({
