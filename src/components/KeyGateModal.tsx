@@ -152,7 +152,7 @@ export function KeyGateModal() {
                   type="button"
                   tabIndex={0}
                   onClick={cancelKeySubmit}
-                  className="shrink-0 rounded text-[14px] text-muted/60 underline-offset-4 transition-colors hover:text-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                  className="shrink-0 rounded text-[14px] text-muted/80 underline-offset-4 transition-colors hover:text-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
                 >
                   Cancel
                 </button>
@@ -168,7 +168,7 @@ export function KeyGateModal() {
                 type="button"
                 tabIndex={0}
                 onClick={clearApiKey}
-                className="rounded text-[12px] text-muted/60 underline-offset-4 transition-colors hover:text-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                className="rounded text-[12px] text-muted/80 underline-offset-4 transition-colors hover:text-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
               >
                 Clear stored key
               </button>
