@@ -36,6 +36,9 @@ export interface AppState {
   /** FR-6's revision requests read the key from here rather than the settings module directly - mirrored from settingsHandle the same way keyGate's fields are. */
   apiKey: string
 
+  /** PRD Q1-b: false once a settings write has thrown - mirrored from settingsHandle so TopBar can show the standing storage warning. */
+  keyPersisted: boolean
+
   /**
    * FR-12's visible-failure surface for requested work - revisions (AC-12.2)
    * and refinements (AC-7.6) alike. One banner, not one per caller: the
@@ -84,6 +87,7 @@ export const useAppStore = create<AppState>((set) => {
       keyGateDraft: keyGate.draftValue,
       hasStoredKey: settingsHandle.settings.apiKey.trim().length > 0,
       apiKey: settingsHandle.settings.apiKey,
+      keyPersisted: settingsHandle.keyPersisted,
     })
   }
 
@@ -93,18 +97,19 @@ export const useAppStore = create<AppState>((set) => {
       set((s) => {
         const predictionsEnabled = !s.predictionsEnabled
         settingsHandle.settings.continuationEnabled = predictionsEnabled
-        return { predictionsEnabled }
+        return { predictionsEnabled, keyPersisted: settingsHandle.keyPersisted }
       }),
     selectedModelId: resolveModelId(settingsHandle.settings.model),
     setSelectedModelId: (id) => {
       settingsHandle.settings.model = id
-      set({ selectedModelId: id })
+      set({ selectedModelId: id, keyPersisted: settingsHandle.keyPersisted })
     },
 
     documentText: '',
     setDocumentText: (text) => set({ documentText: text }),
 
     apiKey: settingsHandle.settings.apiKey,
+    keyPersisted: settingsHandle.keyPersisted,
 
     requestFailureMessage: null,
     requestFailureKind: null,

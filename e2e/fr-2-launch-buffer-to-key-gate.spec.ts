@@ -46,7 +46,11 @@ test('T-FR-2-9: keystrokes typed during the launch state replay into the documen
   await expect(page.locator('#key-gate-input')).toHaveValue('')
 
   // AC-2.4: not lost either - the document is where it belongs, even though
-  // the document is not yet editable behind the gate.
+  // the document is not yet editable behind the gate. The editor is
+  // lazy-loaded, so wait for its mount rather than racing it.
+  await page.waitForFunction(
+    () => !!(window as unknown as { __editor?: unknown }).__editor,
+  )
   const doc = await page.evaluate(
     () =>
       (window as unknown as { __editor?: { state: { doc: { toString(): string } } } }).__editor

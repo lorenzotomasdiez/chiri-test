@@ -83,3 +83,35 @@ test('T-FR-6-2: Selecting text raises the action bar with all three entry points
     expect(isAbove || isBelow).toBeTruthy()
   }
 })
+
+test('Jumping from one selection straight to another clears the typed instruction and message', async ({
+  page,
+}) => {
+  const fullText = 'The report was late because the team was busy today.'
+
+  await page.locator('.cm-content').click()
+  await page.keyboard.type(fullText)
+  expect(await docText(page)).toBe(fullText)
+
+  // Select "the team" (28-36)
+  await page.evaluate(() => {
+    const editor = (window as unknown as { __editor: EditorView }).__editor
+    editor.dispatch({ selection: { anchor: 28, head: 36 } })
+  })
+
+  const actionBar = page.locator('[data-testid="selection-action-bar"]')
+  const instructionField = page.locator('[data-testid="action-custom-instruction"]')
+  await expect(actionBar).toBeVisible()
+  await instructionField.fill('Make this punchier')
+  await expect(instructionField).toHaveValue('Make this punchier')
+
+  // Jump straight to a different, non-empty selection - "busy today" (41-51) -
+  // without ever passing through an empty selection in between.
+  await page.evaluate(() => {
+    const editor = (window as unknown as { __editor: EditorView }).__editor
+    editor.dispatch({ selection: { anchor: 41, head: 51 } })
+  })
+
+  await expect(actionBar).toBeVisible()
+  await expect(instructionField).toHaveValue('')
+})

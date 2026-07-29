@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { EditorView } from '@codemirror/view'
 import { useAppStore } from '../state/store'
 import { buildRevisionRequest } from '../core/prompt'
@@ -34,7 +34,16 @@ interface SelectionActionBarProps {
   view: EditorView
   from: number
   to: number
+  /**
+   * AC-6.13: another revision is already pending elsewhere in the document.
+   * At most one revision is in flight at a time, so a request from this bar
+   * is refused with a visible message rather than issued.
+   */
+  revisionPending?: boolean
 }
+
+const PENDING_REVISION_MESSAGE =
+  'A revision is already pending. Resolve it before requesting another.'
 
 /**
  * The floating action bar raised over a non-empty selection (AC-6.2), a
@@ -45,11 +54,25 @@ interface SelectionActionBarProps {
  * rectangles are read from, and always below the selection so it never
  * covers the text it refers to.
  */
-export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) {
+export function SelectionActionBar({
+  view,
+  from,
+  to,
+  revisionPending = false,
+}: SelectionActionBarProps) {
   const [instruction, setInstruction] = useState('')
   const [message, setMessage] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const busyRef = useRef(false)
+  // Aborted on unmount (T-FR-6-13): clearing or replacing the selection
+  // unmounts this bar while a request may still be in flight, and without
+  // this the response would land later and dispatch a proposal over a span
+  // the user is no longer looking at.
+  const controllerRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    return () => controllerRef.current?.abort()
+  }, [])
   // What has streamed back so far, for the progress line. Never rendered as
   // the proposal itself - see the AC-6.9 note in `runRevision`.
   const [streamed, setStreamed] = useState('')
@@ -67,6 +90,13 @@ export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) 
     // the retry closure handed to the failure banner, and by the time the user
     // clicks Retry the `busy` this closure captured is several renders old.
     if (busyRef.current) return
+    // AC-6.13: a revision is already pending over some other span. Refuse
+    // outright, the same shape as the paragraph-count guard below, rather
+    // than issuing a second request that would have nowhere valid to land.
+    if (revisionPending) {
+      setMessage(PENDING_REVISION_MESSAGE)
+      return
+    }
     const selectedText = view.state.sliceDoc(from, to)
     const guard = checkParagraphCount(selectedText)
     if (guard.kind === 'refused') {
@@ -78,6 +108,9 @@ export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) 
     setStreamed('')
     busyRef.current = true
     setBusy(true)
+
+    const controller = new AbortController()
+    controllerRef.current = controller
 
     try {
       const promptText = userInstruction ? `${userInstruction}\n\n${selectedText}` : selectedText
@@ -95,10 +128,14 @@ export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) 
         completion = await requestRevisionCompletion(
           requestBody,
           apiKey,
-          undefined,
+          controller.signal,
           (_fragment, soFar) => setStreamed(soFar),
         )
       } catch (error) {
+        // T-FR-6-13: an abort means the selection this request was for is
+        // already gone (unmounted or superseded), so there is no bar left to
+        // show a failure on and nothing to retry into.
+        if (error instanceof DOMException && error.name === 'AbortError') return
         // AC-12.2: the user selected text, clicked, and is waiting, so this
         // is always visible, always dismissible, and always retryable - and
         // the retry re-sends this same request over this same span rather
@@ -134,6 +171,7 @@ export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) 
         }),
       })
     } finally {
+      controllerRef.current = null
       busyRef.current = false
       setBusy(false)
       setStreamed('')

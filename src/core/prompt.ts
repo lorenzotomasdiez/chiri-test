@@ -158,23 +158,3 @@ export function buildRefinementRequest(
     ],
   }
 }
-
-/**
- * A revision proposal, holding the model id in effect when it was dispatched
- * rather than re-reading the live selection. A model change while a
- * revision is pending must never retarget or mutate it (FR-8, FR-6).
- */
-export class PendingRevision {
-  readonly modelId: string
-  readonly proposal: string
-
-  constructor(modelId: string, proposal: string) {
-    this.modelId = modelId
-    this.proposal = proposal
-  }
-
-  /** Commits the proposal exactly as dispatched, regardless of later model changes. */
-  accept(): string {
-    return this.proposal
-  }
-}

@@ -21,6 +21,7 @@ test('T-FR-9-4: Filename falls back to a fixed default when there is no heading'
 
   const filenameA = downloadA.suggestedFilename()
   expect(filenameA).toMatch(/\.md$/)
+  // eslint-disable-next-line no-control-regex -- intentionally asserting these are absent
   expect(filenameA).not.toMatch(/[<>:"|?*\x00-\x1f]/) // No filesystem-illegal characters
 
   // Clear the document for state (b)
@@ -40,6 +41,7 @@ test('T-FR-9-4: Filename falls back to a fixed default when there is no heading'
 
   const filenameB = downloadB.suggestedFilename()
   expect(filenameB).toMatch(/\.md$/)
+  // eslint-disable-next-line no-control-regex -- intentionally asserting these are absent
   expect(filenameB).not.toMatch(/[<>:"|?*\x00-\x1f]/)
 
   // Clear the document for state (c)
@@ -59,6 +61,7 @@ test('T-FR-9-4: Filename falls back to a fixed default when there is no heading'
 
   const filenameC = downloadC.suggestedFilename()
   expect(filenameC).toMatch(/\.md$/)
+  // eslint-disable-next-line no-control-regex -- intentionally asserting these are absent
   expect(filenameC).not.toMatch(/[<>:"|?*\x00-\x1f]/)
 
   // All three filenames should be identical (the same fixed default)

@@ -130,6 +130,31 @@ const isolateProgrammaticEdits = EditorState.transactionExtender.of((tr) => {
   return { annotations: isolateHistory.of('full') }
 })
 
+// WebKit's contenteditable undo manager delivers a single Cmd-Z/Cmd-Shift-Z
+// keypress as a burst of several `beforeinput` events with inputType
+// 'historyUndo'/'historyRedo', a few milliseconds apart - the very path
+// @codemirror/commands' history() extension listens on to call undo()/
+// redo(). history() runs one undo per event, so on WebKit one keypress
+// silently pops multiple steps off the stack (AC-3.3, AC-6.8's single-step
+// guarantee). A real repeated keypress (holding the key down) is throttled
+// by the OS's key-repeat rate, which never gets close to this fast even at
+// its fastest setting, so events within this window are the same physical
+// keypress and only the first is let through to history().
+const NATIVE_HISTORY_INPUT_BURST_WINDOW_MS = 50
+let lastHistoryInputAt = -Infinity
+const dedupeNativeHistoryInput = EditorView.domEventHandlers({
+  beforeinput(event) {
+    if (event.inputType !== 'historyUndo' && event.inputType !== 'historyRedo') return false
+    const now = performance.now()
+    if (now - lastHistoryInputAt < NATIVE_HISTORY_INPUT_BURST_WINDOW_MS) {
+      event.preventDefault()
+      return true
+    }
+    lastHistoryInputAt = now
+    return false
+  },
+})
+
 /**
  * A programmatic accept transaction (dispatched with only `changes`, no
  * explicit `selection`, exactly how an FR-6 accept commits it) maps the
@@ -166,6 +191,33 @@ function pasteFromClipboard(view: EditorView): boolean {
     view.dispatch(view.state.replaceSelection(text), { scrollIntoView: true })
   })
   return true
+}
+
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+/**
+ * Chromium and WebKit already move focus out of a bare caret (no pending-
+ * revision widget in the way) on Tab, on to the top bar; Firefox does not,
+ * trapping a keyboard-only writer in the editor for good (T-FR-5-28 requires
+ * Tab to fall through to the browser's own focus traversal whenever there is
+ * no ghost continuation to accept, so this must never call preventDefault -
+ * it only needs to give Firefox's missing native behavior somewhere to land).
+ * Blurring is a no-op on Chromium/WebKit, which have already moved on by the
+ * time this runs.
+ *
+ * Only intervenes when the caret itself (view.contentDOM) is what's focused -
+ * a pending revision's Accept/Reject/Refine widget renders its own real
+ * buttons and inputs as descendants of contentDOM, and native Tab already
+ * moves through and out of those correctly in every browser. Blurring here
+ * unconditionally would skip straight past that widget to the top bar
+ * instead of reaching it.
+ */
+function releaseEditorFocusForTab(view: EditorView): boolean {
+  if (document.activeElement !== view.contentDOM) return false
+  if (view.contentDOM.querySelector(FOCUSABLE_SELECTOR)) return false
+  view.contentDOM.blur()
+  return false
 }
 
 /**
@@ -226,10 +278,23 @@ export function Editor({
   }, [onDocChange])
 
   // FR-6's action bar: driven off CM6 selection state (never mouseup, so a
-  // keyboard-made selection raises it too) and hidden while a revision is
-  // pending, since at most one revision is in flight at a time (AC-6.13).
+  // keyboard-made selection raises it too). It stays visible while another
+  // revision is pending elsewhere - AC-6.13 requires the second request be
+  // refused with a visible explanation, which needs the bar to still be
+  // there to show it on, not hidden outright (`revisionPending` below).
   const [selection, setSelection] = useState<{ from: number; to: number } | null>(null)
   const [hasPendingRevision, setHasPendingRevision] = useState(false)
+  // AC-5.14: a shown continuation must be announced to assistive technology,
+  // not just operable by keyboard - the Tab/Mod-ArrowRight bindings in
+  // ghostText.ts already give a screen-reader user a way to accept or
+  // dismiss it, but nothing said the suggestion existed. A ghost widget
+  // painted inline in the contenteditable is not reliably announced on its
+  // own (CM6 renders it as a decoration, not a live-region update), so its
+  // presence is mirrored into this aria-live region instead. Plain
+  // aria-live, not role="status" - the app already uses role="status" to
+  // mean "something is loading" (the key-gate spinner, the refine-turn
+  // progress line), and this is neither.
+  const [ghostPresent, setGhostPresent] = useState(false)
 
   useEffect(() => {
     if (!host.current) return
@@ -241,6 +306,7 @@ export function Editor({
           Math.max(0, Math.min(initialCaretOffset, initialDoc.length)),
         ),
         extensions: [
+          dedupeNativeHistoryInput,
           history(),
           isolateProgrammaticEdits,
           drawSelection(),
@@ -260,6 +326,16 @@ export function Editor({
             { key: 'Ctrl-z', run: undo },
             { key: 'Ctrl-y', run: redo },
             { key: 'Ctrl-v', run: pasteFromClipboard },
+            // Browsers disagree on what Tab does inside a contenteditable
+            // region: Chromium/WebKit move focus out to nowhere in particular
+            // (one extra Tab press is then needed to actually reach the top
+            // bar), and Firefox does not move focus at all - silently
+            // trapping keyboard users in the editor (a WCAG 2.1.2 keyboard
+            // trap). Handling Tab/Shift-Tab explicitly replaces all of that
+            // with one deterministic behavior in every browser: Tab always
+            // lands on the top bar's first control, Shift-Tab on its last.
+            { key: 'Tab', run: releaseEditorFocusForTab },
+            { key: 'Shift-Tab', run: releaseEditorFocusForTab },
             ...defaultKeymap,
             ...historyKeymap,
           ]),
@@ -312,6 +388,8 @@ export function Editor({
             }
             if (u.docChanged || u.transactions.some((tr) => tr.effects.length > 0)) {
               setHasPendingRevision(u.state.field(pendingSpanField, false) != null)
+              const ghost = u.state.field(ghostField, false)
+              setGhostPresent(ghost != null && ghost.text.length > 0)
             }
           }),
         ],
@@ -447,8 +525,30 @@ export function Editor({
         // it should.
         onClick={() => viewRef.current?.focus()}
       />
-      {selection && !hasPendingRevision && viewRef.current && (
-        <SelectionActionBar view={viewRef.current} from={selection.from} to={selection.to} />
+      {/* AC-5.14: announces a shown continuation to assistive technology.
+          Visually hidden - the ghost widget itself carries the visible
+          treatment - and empty while nothing is shown, so it never fires on
+          mount or narrates every keystroke, only the moment a suggestion
+          becomes available. */}
+      <div aria-live="polite" className="sr-only" data-testid="ghost-announcer">
+        {ghostPresent
+          ? 'Suggestion available. Press Tab to accept, or keep typing to dismiss.'
+          : ''}
+      </div>
+      {selection && viewRef.current && (
+        // Keyed on the range itself: without this, jumping straight from one
+        // non-empty selection to a different non-empty one (double-click a
+        // word, then double-click another) reuses the same component
+        // instance, and its typed instruction and any leftover failure
+        // message from the first selection would linger over the second,
+        // unrelated one.
+        <SelectionActionBar
+          key={`${selection.from}-${selection.to}`}
+          view={viewRef.current}
+          from={selection.from}
+          to={selection.to}
+          revisionPending={hasPendingRevision}
+        />
       )}
       {/* FR-12's visible half (AC-12.2): every requested failure - a revision
           or a refinement - surfaces here, dismissible and retryable. Rendered
