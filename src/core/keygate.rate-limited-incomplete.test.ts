@@ -5,11 +5,17 @@ import type { Transport } from './schedule'
 describe('KeyGate - rate-limited validation handling', () => {
   it('T-FR-1-8: A 429 rate-limit response is treated as incomplete, not rejected, with retry available', async () => {
     let attempts = 0
-    const transport: Transport = () => {
+    // Untyped, cast only at the call site: annotating this inline as
+    // `Transport` directly makes tsc -b infer the second branch's return as
+    // Promise<void>, which isn't assignable to Transport's AsyncIterable
+    // return shape even though plain tsc --noEmit and vitest both accept it.
+    // Same pattern as keygate.cancel-discards-late-response.test.ts's
+    // controllableTransport().
+    const transport = (async (): Promise<unknown> => {
       attempts++
       if (attempts === 1) throw { status: 429 }
-      return Promise.resolve()
-    }
+      return undefined
+    }) as unknown as Transport
 
     const settings = { apiKey: '', model: '', continuationEnabled: true }
     const keygate = new KeyGate({
