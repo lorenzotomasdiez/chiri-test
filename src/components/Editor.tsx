@@ -102,6 +102,22 @@ const theme = EditorView.theme({
       'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
     fontSize: '14px',
     backgroundColor: '#F1EDEC',
+    paddingLeft: '16px',
+    paddingRight: '16px',
+    borderLeft: '1px solid rgba(199, 198, 202, 0.3)',
+    borderRight: '1px solid rgba(199, 198, 202, 0.3)',
+  },
+  '.cm-lp-codeblock-start': {
+    paddingTop: '16px',
+    borderTop: '1px solid rgba(199, 198, 202, 0.3)',
+    borderTopLeftRadius: '4px',
+    borderTopRightRadius: '4px',
+  },
+  '.cm-lp-codeblock-end': {
+    paddingBottom: '16px',
+    borderBottom: '1px solid rgba(199, 198, 202, 0.3)',
+    borderBottomLeftRadius: '4px',
+    borderBottomRightRadius: '4px',
   },
   '.cm-lp-quote': {
     color: '#46464A',

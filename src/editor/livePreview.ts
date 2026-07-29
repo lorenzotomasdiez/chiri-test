@@ -147,9 +147,17 @@ function collectSpans(view: EditorView): { visual: VisualSpan[]; atomic: AtomicS
             // block markers get a visible-but-styled treatment below, and
             // this covers both without hiding either.
             break
-          case 'FencedCode':
-            lineRange(node.from, node.to, 'cm-lp-codeblock')
+          case 'FencedCode': {
+            const startLine = doc.lineAt(node.from).number
+            const endLine = doc.lineAt(node.to).number
+            for (let l = startLine; l <= endLine; l++) {
+              const classes = ['cm-lp-codeblock']
+              if (l === startLine) classes.push('cm-lp-codeblock-start')
+              if (l === endLine) classes.push('cm-lp-codeblock-end')
+              line(doc.line(l).from, classes.join(' '))
+            }
             break
+          }
           case 'Blockquote':
             lineRange(node.from, node.to, 'cm-lp-quote')
             break
