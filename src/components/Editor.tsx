@@ -511,7 +511,18 @@ export function Editor({
         onClick={() => viewRef.current?.focus()}
       />
       {selection && !hasPendingRevision && viewRef.current && (
-        <SelectionActionBar view={viewRef.current} from={selection.from} to={selection.to} />
+        // Keyed on the range itself: without this, jumping straight from one
+        // non-empty selection to a different non-empty one (double-click a
+        // word, then double-click another) reuses the same component
+        // instance, and its typed instruction and any leftover failure
+        // message from the first selection would linger over the second,
+        // unrelated one.
+        <SelectionActionBar
+          key={`${selection.from}-${selection.to}`}
+          view={viewRef.current}
+          from={selection.from}
+          to={selection.to}
+        />
       )}
       {/* FR-12's visible half (AC-12.2): every requested failure - a revision
           or a refinement - surfaces here, dismissible and retryable. Rendered
