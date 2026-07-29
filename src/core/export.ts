@@ -17,6 +17,7 @@ export const DEFAULT_FILENAME = 'untitled.md'
 const MAX_SLUG_LENGTH = 80
 
 /** Characters that are illegal (or awkward) across common filesystems. */
+// eslint-disable-next-line no-control-regex -- intentionally stripping control characters
 const ILLEGAL_FILENAME_CHARACTERS = /[/\\:*?"<>|\x00-\x1f\x7f]/g
 
 /**
