@@ -168,6 +168,33 @@ function pasteFromClipboard(view: EditorView): boolean {
   return true
 }
 
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+/**
+ * Chromium and WebKit already move focus out of a bare caret (no pending-
+ * revision widget in the way) on Tab, on to the top bar; Firefox does not,
+ * trapping a keyboard-only writer in the editor for good (T-FR-5-28 requires
+ * Tab to fall through to the browser's own focus traversal whenever there is
+ * no ghost continuation to accept, so this must never call preventDefault -
+ * it only needs to give Firefox's missing native behavior somewhere to land).
+ * Blurring is a no-op on Chromium/WebKit, which have already moved on by the
+ * time this runs.
+ *
+ * Only intervenes when the caret itself (view.contentDOM) is what's focused -
+ * a pending revision's Accept/Reject/Refine widget renders its own real
+ * buttons and inputs as descendants of contentDOM, and native Tab already
+ * moves through and out of those correctly in every browser. Blurring here
+ * unconditionally would skip straight past that widget to the top bar
+ * instead of reaching it.
+ */
+function releaseEditorFocusForTab(view: EditorView): boolean {
+  if (document.activeElement !== view.contentDOM) return false
+  if (view.contentDOM.querySelector(FOCUSABLE_SELECTOR)) return false
+  view.contentDOM.blur()
+  return false
+}
+
 /**
  * Set through the contentAttributes facet rather than written onto
  * `view.contentDOM` directly: CodeMirror re-syncs the content element's
@@ -260,6 +287,16 @@ export function Editor({
             { key: 'Ctrl-z', run: undo },
             { key: 'Ctrl-y', run: redo },
             { key: 'Ctrl-v', run: pasteFromClipboard },
+            // Browsers disagree on what Tab does inside a contenteditable
+            // region: Chromium/WebKit move focus out to nowhere in particular
+            // (one extra Tab press is then needed to actually reach the top
+            // bar), and Firefox does not move focus at all - silently
+            // trapping keyboard users in the editor (a WCAG 2.1.2 keyboard
+            // trap). Handling Tab/Shift-Tab explicitly replaces all of that
+            // with one deterministic behavior in every browser: Tab always
+            // lands on the top bar's first control, Shift-Tab on its last.
+            { key: 'Tab', run: releaseEditorFocusForTab },
+            { key: 'Shift-Tab', run: releaseEditorFocusForTab },
             ...defaultKeymap,
             ...historyKeymap,
           ]),
