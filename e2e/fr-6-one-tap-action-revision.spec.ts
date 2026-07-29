@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { seedValidatedKey } from './seed'
+import { mockRevisionResponse } from './openrouter-mock'
 import type { EditorView } from '@codemirror/view'
 
 /** The document as CodeMirror holds it - the canonical Markdown, not the DOM. */
@@ -28,17 +29,10 @@ test('T-FR-6-3: A one-tap action produces a revision within the latency bar', as
   // Select all the text so the action bar appears
   await page.keyboard.press('Meta+a')
 
-  // Intercept and handle the SSE request
-  await page.route('https://openrouter.ai/**', async (route) => {
-    await route.fulfill({
-      status: 200,
-      headers: {
-        'content-type': 'text/event-stream',
-      },
-      body: `reason: Vague cause
---sep--
-The report slipped because the team had competing priorities.`,
-    })
+  // Intercept the revision request with a real-shaped completion envelope
+  await mockRevisionResponse(page, {
+    reason: 'Vague cause',
+    proposal: 'The report slipped because the team had competing priorities.',
   })
 
   // Click the "Improve the writing" one-tap action

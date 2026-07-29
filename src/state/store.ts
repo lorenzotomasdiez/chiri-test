@@ -35,6 +35,17 @@ export interface AppState {
   /** FR-6's revision requests read the key from here rather than the settings module directly - mirrored from settingsHandle the same way keyGate's fields are. */
   apiKey: string
 
+  /**
+   * FR-7's refinement-failure surfacing: the widget itself is a plain
+   * WidgetType outside React, so a failed refinement turn reports here
+   * instead of holding local component state, and whatever mounts
+   * FailureBanner (Editor.tsx) reads it back out.
+   */
+  refinementFailureMessage: string | null
+  refinementRetry: (() => void) | null
+  setRefinementFailure: (message: string, retry: () => void) => void
+  clearRefinementFailure: () => void
+
   /** FR-1's five-state key gate, mirrored here from the KeyGate instance. */
   keyGateState: KeyGateState
   keyGateFailure: Failure | undefined
@@ -59,8 +70,13 @@ export const useAppStore = create<AppState>((set) => {
   }
 
   return {
-    predictionsEnabled: true,
-    togglePredictions: () => set((s) => ({ predictionsEnabled: !s.predictionsEnabled })),
+    predictionsEnabled: settingsHandle.settings.continuationEnabled,
+    togglePredictions: () =>
+      set((s) => {
+        const predictionsEnabled = !s.predictionsEnabled
+        settingsHandle.settings.continuationEnabled = predictionsEnabled
+        return { predictionsEnabled }
+      }),
     selectedModelId: resolveModelId(settingsHandle.settings.model),
     setSelectedModelId: (id) => {
       settingsHandle.settings.model = id
@@ -71,6 +87,11 @@ export const useAppStore = create<AppState>((set) => {
     setDocumentText: (text) => set({ documentText: text }),
 
     apiKey: settingsHandle.settings.apiKey,
+
+    refinementFailureMessage: null,
+    refinementRetry: null,
+    setRefinementFailure: (message, retry) => set({ refinementFailureMessage: message, refinementRetry: retry }),
+    clearRefinementFailure: () => set({ refinementFailureMessage: null, refinementRetry: null }),
 
     keyGateState: keyGate.state,
     keyGateFailure: keyGate.failure,

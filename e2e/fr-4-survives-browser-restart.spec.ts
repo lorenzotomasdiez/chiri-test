@@ -1,5 +1,5 @@
 import { test, expect, chromium } from '@playwright/test'
-import { seedValidatedKey, SEEDED_API_KEY } from './seed'
+import { seedValidatedKey } from './seed'
 import { tmpdir } from 'os'
 import { mkdtempSync, rmSync } from 'fs'
 import { join } from 'path'

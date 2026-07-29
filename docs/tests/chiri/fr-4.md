@@ -4,7 +4,7 @@
 |---|---|
 | Requirement | [FR-4](../../prd/chiri/index.md#fr-4-local-persistence-of-the-document) |
 | Priority | P0 |
-| Scenarios | 14 |
+| Scenarios | 12 |
 | Last updated | 2026-07-28 |
 
 ## What this requirement promises
@@ -45,7 +45,9 @@ Unless a scenario states otherwise, the browser profile already has a document s
 | At the floor | 2.0 seconds | `x` is present in the reloaded document |
 | Just above the floor | 2.1 seconds | `x` is present in the reloaded document |
 
-**How you would run this:** Needs an injected/fake clock to make the 1.9s/2.0s/2.1s waits exact and fast rather than real sleeps, plus a real IndexedDB (per the blueprint, the write path is behind an injected `DocumentStore` interface that is fakeable, but the actual write-and-reload round trip for this scenario needs the real storage engine to be meaningful).
+**How you would run this:** In a real browser against real IndexedDB, by reading the persisted record back directly and asserting the character is in it within the floor of the keystroke that produced it.
+An injected clock is the wrong instrument here despite being the convenient one: the floor is a wall-clock promise about the debounce *plus* the real storage round trip, and a fake-timer test can only ever observe the debounce constant it was handed, which makes it restate its own input rather than measure the promise.
+Keep the below-the-floor case unasserted in either direction, per the table.
 
 ### T-FR-4-3: A pending continuation is never restored
 **Priority:** P0
@@ -79,18 +81,6 @@ Unless a scenario states otherwise, the browser profile already has a document s
 **And** the document is immediately editable, with no gate, spinner, or blocking state standing between opening the tab and typing
 
 **How you would run this:** Needs a real browser instance restarted between steps (or an equivalent close-and-relaunch simulation), since this is distinct from a same-process page reload and is exercising a colder start path.
-
-### T-FR-4-6: A first-ever session in a browser profile starts with an empty, persisted-from-scratch document
-**Priority:** P0
-**Covers:** AC-4.5
-
-**Given** a browser profile that has never opened Chiri before, with no prior IndexedDB entry for the document
-**When** the app loads
-**Then** the document is empty
-**And** the FR-11 onboarding cue applies to that empty state
-**And** nothing about this cold-start path errors or blocks the editor from becoming usable
-
-**How you would run this:** Fully automatable in a real browser with a freshly created, unseeded storage context (a fresh Playwright browser context with no prior IndexedDB data satisfies this without needing real hardware setup).
 
 ### T-FR-4-7: The caret returns to a sensible position, not an arbitrary offset
 **Priority:** P1
@@ -165,18 +155,6 @@ This is a strong candidate for a manual pass per release rather than a routine a
 
 **How you would run this:** Needs two real browser contexts or two real tabs against the same profile's storage; this is an exploratory scenario, not a strict pass/fail against a stated rule, since the PRD does not define multi-tab behavior.
 
-### T-FR-4-13: The document loads, stays editable, and keeps saving with no network
-**Priority:** P0
-**Covers:** NFR-8
-
-**Given** a document was saved during a previous session while the network was available
-**And** the network is now unavailable
-**When** the user opens Chiri in the same browser profile
-**Then** the previously saved document loads and is fully editable
-**And** as the user types further sentences, those edits persist locally the same way they would with network available, verified by reloading with the network still off and seeing the new text
-
-**How you would run this:** Fully automatable in a real browser with the network condition simulated (browser devtools offline mode or an equivalent), no real network dependency required since IndexedDB is local.
-
 ### T-FR-4-14: A corrupted or unreadable persisted record does not crash the editor
 **Priority:** P1
 **Covers:** Beyond the stated criteria
@@ -204,9 +182,11 @@ The empty-document persistence path (T-FR-4-8) is a natural place for an off-by-
 
 ## Not covered here
 The mechanics of what makes text "pending" versus "committed" (the ghost continuation and the revision diff lifecycle themselves) belong to FR-5 and FR-6's plans; this file only tests that whatever is pending is excluded from what gets saved and restored.
-The onboarding cue's wording and dismissal behavior for the empty document belong to FR-11's plan; T-FR-4-6 only asserts that the empty state is reached correctly on a first-ever session.
+The onboarding cue and the empty first-session state belong to FR-11's plan.
+A scenario for the first-ever session in a fresh profile used to live here as T-FR-4-6, but everything it could actually observe - an empty document, the onboarding cue, a usable editor - holds identically whether or not anything is persisted, so it proved nothing about this requirement and was removed rather than kept as coverage that was not real.
 Export and the clipboard/download round trip belong to FR-9's plan; this file only concerns the automatic local save, not any user-initiated copy of the document leaving the browser.
-General AI failure and offline behavior for continuation and revision requests (rate limits, credit exhaustion, malformed responses) belong to FR-12's plan; T-FR-4-13 here is narrowly about the document itself loading and continuing to save while offline, not about how AI requests behave offline.
+General AI failure and offline behavior for continuation and revision requests (rate limits, credit exhaustion, malformed responses) belong to FR-12's plan.
+Offline behavior of the document itself is not covered here either: the offline-degradation requirement it used to test was removed from the PRD, so nothing in this plan asserts what happens with the network unavailable.
 The 50ms per-keystroke input-latency bar (NFR-2) is FR-3's concern; T-FR-4-9 checks that a 20,000-character document still saves and restores correctly, not that typing in it stays fast.
 
 ## Open questions

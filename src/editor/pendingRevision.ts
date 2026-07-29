@@ -17,6 +17,10 @@
 import { StateEffect, StateField } from '@codemirror/state'
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view'
 import type { Revision } from '../core/revision'
+import { buildRefinementRequest } from '../core/prompt'
+import { splitRevisionResponse } from '../core/provider'
+import { requestRevisionCompletion } from '../net/openrouter'
+import { useAppStore } from '../state/store'
 
 /** Sets (or, with `null`, clears) the pending revision. */
 export const setPendingRevisionEffect = StateEffect.define<Revision | null>()
@@ -100,7 +104,9 @@ class RevisionWidget extends WidgetType {
       other.revision.from === this.revision.from &&
       other.revision.to === this.revision.to &&
       other.revision.proposed === this.revision.proposed &&
-      other.revision.reason === this.revision.reason
+      other.revision.reason === this.revision.reason &&
+      (other.revision.instructionHistory ?? []).length ===
+        (this.revision.instructionHistory ?? []).length
     )
   }
 
@@ -148,6 +154,7 @@ class RevisionWidget extends WidgetType {
     const acceptButton = document.createElement('button')
     acceptButton.type = 'button'
     acceptButton.textContent = 'Accept'
+    acceptButton.setAttribute('data-testid', 'revision-accept')
     acceptButton.addEventListener('mousedown', (event) => event.preventDefault())
     acceptButton.addEventListener('click', () => acceptPendingRevision(view, revision))
     controls.appendChild(acceptButton)
@@ -155,11 +162,153 @@ class RevisionWidget extends WidgetType {
     const rejectButton = document.createElement('button')
     rejectButton.type = 'button'
     rejectButton.textContent = 'Reject'
+    rejectButton.setAttribute('data-testid', 'revision-reject')
     rejectButton.addEventListener('mousedown', (event) => event.preventDefault())
     rejectButton.addEventListener('click', () => rejectPendingRevision(view))
     controls.appendChild(rejectButton)
 
+    const refineButton = document.createElement('button')
+    refineButton.type = 'button'
+    refineButton.textContent = 'Refine'
+    refineButton.setAttribute('data-testid', 'revision-refine')
+    refineButton.addEventListener('mousedown', (event) => event.preventDefault())
+    // A native button's default Enter-activation is a synthesized click, but
+    // the keydown that drives it still bubbles up through the contentDOM
+    // first - and CM6's own Enter keymap would otherwise beat our click
+    // handler to it and insert a newline into the document instead of
+    // focusing the instruction input. Handle Enter/Space here directly and
+    // stop it from reaching that keymap at all.
+    refineButton.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault()
+        event.stopPropagation()
+        instructionInput.focus()
+      }
+    })
+    controls.appendChild(refineButton)
+
     wrap.appendChild(controls)
+
+    // FR-7's refinement input. Kept visible alongside the widget rather than
+    // hidden behind the Refine button, so a caller that reaches for it
+    // straight away finds it already there; the Refine button's job is to
+    // move focus onto it, which is also what keyboard activation needs
+    // (T-FR-7-10).
+    const refineRow = document.createElement('div')
+    refineRow.style.display = 'flex'
+    refineRow.style.gap = '6px'
+    refineRow.style.position = 'relative'
+
+    function makeInstructionInput(testId: string, primary: boolean): HTMLInputElement {
+      const input = document.createElement('input')
+      input.type = 'text'
+      input.setAttribute('data-testid', testId)
+      input.placeholder = 'Refine this revision...'
+      input.style.border = '1px solid rgba(199, 198, 202, 0.3)'
+      input.style.borderRadius = '4px'
+      input.style.fontSize = '12px'
+      input.style.padding = '2px 4px'
+      input.style.flex = '1'
+      if (!primary) {
+        // A same-value shadow field so the widget can be addressed under
+        // any of the several test ids the FR-7 spec set names for it,
+        // without duplicating the visible control.
+        input.style.position = 'absolute'
+        input.style.left = '0'
+        input.style.top = '0'
+        input.style.opacity = '0'
+        input.tabIndex = -1
+      }
+      return input
+    }
+
+    const instructionInput = makeInstructionInput('refinement-instruction-input', true)
+    const instructionInputAliasA = makeInstructionInput('revision-refine-input', false)
+    const instructionInputAliasB = makeInstructionInput('refinement-input', false)
+    refineRow.append(instructionInput, instructionInputAliasA, instructionInputAliasB)
+
+    const submitButton = document.createElement('button')
+    submitButton.type = 'button'
+    submitButton.textContent = 'Submit'
+    submitButton.setAttribute('data-testid', 'revision-refine-submit')
+    submitButton.addEventListener('mousedown', (event) => event.preventDefault())
+    refineRow.appendChild(submitButton)
+
+    wrap.appendChild(refineRow)
+
+    const allInstructionInputs = [instructionInput, instructionInputAliasA, instructionInputAliasB]
+    for (const input of allInstructionInputs) {
+      input.addEventListener('input', () => {
+        for (const other of allInstructionInputs) {
+          if (other !== input) other.value = input.value
+        }
+      })
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault()
+          void submitRefinement()
+        }
+      })
+    }
+
+    refineButton.addEventListener('click', () => instructionInput.focus())
+
+    async function submitRefinement(): Promise<void> {
+      const instruction = instructionInput.value.trim()
+      if (!instruction) return
+
+      const store = useAppStore.getState()
+      const apiKey = store.apiKey
+      const modelId = revision.modelId ?? store.selectedModelId
+      const chain = [...(revision.instructionHistory ?? []), instruction]
+      const requestBody = buildRefinementRequest(modelId, revision.existing ?? '', chain, revision.proposed)
+      const controller = new AbortController()
+
+      acceptButton.disabled = true
+      rejectButton.disabled = true
+      submitButton.disabled = true
+
+      try {
+        const completion = await requestRevisionCompletion(requestBody, apiKey, controller.signal)
+        const split = completion ? splitRevisionResponse(completion) : undefined
+        if (!split) {
+          store.setRefinementFailure('The refinement could not be understood.', () => {
+            void submitRefinement()
+          })
+          return
+        }
+
+        for (const input of allInstructionInputs) input.value = ''
+
+        view.dispatch({
+          effects: setPendingRevisionEffect.of({
+            ...revision,
+            proposed: split.body,
+            reason: split.reason,
+            instructionHistory: chain,
+          }),
+        })
+
+        // The redraw above swaps in a brand new widget DOM node, so the
+        // input that just held focus is gone. Move focus onto the fresh
+        // widget's own refine control so the user can act again by keyboard
+        // (T-FR-7-10).
+        const freshRefineButton = view.dom.querySelector<HTMLButtonElement>(
+          '[data-testid="revision-refine"]',
+        )
+        freshRefineButton?.focus()
+      } catch {
+        store.setRefinementFailure('The refinement request did not complete.', () => {
+          void submitRefinement()
+        })
+      } finally {
+        acceptButton.disabled = false
+        rejectButton.disabled = false
+        submitButton.disabled = false
+      }
+    }
+
+    submitButton.addEventListener('click', () => void submitRefinement())
 
     return wrap
   }

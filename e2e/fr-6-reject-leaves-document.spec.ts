@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { seedValidatedKey } from './seed'
+import { mockRevisionResponse } from './openrouter-mock'
 import type { EditorView } from '@codemirror/view'
 
 /** The document as CodeMirror holds it - the canonical Markdown, not the DOM. */
@@ -34,16 +35,9 @@ test('T-FR-6-7: Rejecting a pending revision leaves the document byte-identical'
   await page.keyboard.press('Meta+a')
 
   // Mock the OpenRouter API to return a revision
-  await page.route('https://openrouter.ai/**', async (route) => {
-    await route.fulfill({
-      status: 200,
-      headers: {
-        'content-type': 'text/event-stream',
-      },
-      body: `reason: Improved clarity
---sep--
-The report slipped because the team had competing priorities.`,
-    })
+  await mockRevisionResponse(page, {
+    reason: 'Improved clarity',
+    proposal: 'The report slipped because the team had competing priorities.',
   })
 
   // Track whether a new request is made after reject

@@ -51,7 +51,6 @@ test('T-FR-9-2: Download and clipboard produce byte-identical Markdown', async (
   const download = await downloadPromise
 
   // Save the download to a temporary location and read it
-  const downloadDir = await page.evaluate(() => window.location.pathname)
   const downloadPath = path.join('/tmp', `download-${Date.now()}.md`)
   await download.saveAs(downloadPath)
 

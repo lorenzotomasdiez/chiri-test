@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { seedValidatedKey, SEEDED_API_KEY } from './seed'
+import { seedValidatedKey } from './seed'
 
 test.beforeEach(async ({ page }) => {
   // Seed a valid key so the shell and editor are available (FR-1 precondition)

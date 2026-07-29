@@ -44,7 +44,7 @@ test('T-FR-6-11: Editing outside a pending revision span leaves it pending and i
   // The revision should span "the team was busy" (positions 66-83 in the initial doc)
   // Apply a pending revision through the editor state
   await page.evaluate(
-    ([docText, proposedText]) => {
+    ([, proposedText]) => {
       const editor = (window as unknown as { __editor: EditorView }).__editor
       const doc = editor.state.doc
 
@@ -114,7 +114,6 @@ test('T-FR-6-11: Editing outside a pending revision span leaves it pending and i
   // Accept the revision and verify the result
   await page.evaluate(
     ([revision]) => {
-      const editor = (window as unknown as { __editor: EditorView }).__editor
       // Call the accept function (from src/core/revision.ts or similar)
       const acceptRevision = (window as unknown as { acceptRevision: Function }).acceptRevision
       if (!acceptRevision) {

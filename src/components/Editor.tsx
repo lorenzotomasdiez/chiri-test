@@ -7,7 +7,9 @@ import {
   history,
   historyKeymap,
   isolateHistory,
+  redo,
   selectAll,
+  undo,
 } from '@codemirror/commands'
 import { markdown } from '@codemirror/lang-markdown'
 import { livePreview } from '../editor/livePreview'
@@ -17,8 +19,12 @@ import {
   setPendingRevision,
   setPendingRevisionEffect,
 } from '../editor/pendingRevision'
+import { ghostField, ghostText } from '../editor/ghostText'
 import type { Revision } from '../core/revision'
 import { SelectionActionBar } from './SelectionActionBar'
+import { FailureBanner } from './FailureBanner'
+import { useAppStore } from '../state/store'
+import { createContinuationTransport } from '../net/openrouter'
 
 const theme = EditorView.theme({
   '&': { fontSize: '18px', height: '100%' },
@@ -75,6 +81,10 @@ const theme = EditorView.theme({
   },
   '.cm-lp-hr': { color: '#77767B' },
   '.cm-lp-listitem': { paddingLeft: '24px' },
+
+  // FR-5's ghost continuation (AC-5.1): grey, never mistakable for
+  // committed text, painted as a widget rather than document content.
+  '.cm-ghost-text': { color: '#9B9A9E' },
 })
 
 // Any programmatic doc-changing transaction that does not carry a user-event
@@ -116,6 +126,31 @@ function fixCaretAfterProgrammaticInsert(tr: Transaction): Transaction {
   })
 }
 
+/**
+ * Reads the clipboard and inserts its text at the current selection. Bound
+ * explicitly to 'Ctrl-v' above rather than relying on the browser's native
+ * paste event, which only fires for the platform's own paste shortcut.
+ */
+function pasteFromClipboard(view: EditorView): boolean {
+  navigator.clipboard.readText().then((text) => {
+    if (!text) return
+    view.dispatch(view.state.replaceSelection(text), { scrollIntoView: true })
+  })
+  return true
+}
+
+/**
+ * Set through the contentAttributes facet rather than written onto
+ * `view.contentDOM` directly: CodeMirror re-syncs the content element's
+ * attributes from this facet on update, so a hand-set attribute is only
+ * reliable until the next one.
+ */
+function describedByExtension(describedById: string | undefined) {
+  return describedById
+    ? EditorView.contentAttributes.of({ 'aria-describedby': describedById })
+    : []
+}
+
 interface EditorProps {
   initialDoc?: string
   /** FR-4's caret restore: where the caret sits at first mount. Clamped into range. */
@@ -132,6 +167,14 @@ interface EditorProps {
    * editability is toggled, via a compartment rather than a remount.
    */
   editable?: boolean
+  /**
+   * NFR-6: the id of an element describing this editor, announced when focus
+   * lands here. FR-11's onboarding cue passes its own id while it is showing,
+   * which is what carries the accept-continuation instruction to a keyboard-
+   * only screen reader user - the cue is otherwise visual alone. Undefined
+   * once nothing is describing the editor.
+   */
+  describedById?: string
 }
 
 export function Editor({
@@ -139,11 +182,16 @@ export function Editor({
   initialCaretOffset = 0,
   onDocChange,
   editable = true,
+  describedById,
 }: EditorProps) {
   const host = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const editableCompartment = useRef(new Compartment()).current
+  const describedByCompartment = useRef(new Compartment()).current
   const onDocChangeRef = useRef(onDocChange)
+  const refinementFailureMessage = useAppStore((s) => s.refinementFailureMessage)
+  const refinementRetry = useAppStore((s) => s.refinementRetry)
+  const clearRefinementFailure = useAppStore((s) => s.clearRefinementFailure)
   useEffect(() => {
     onDocChangeRef.current = onDocChange
   }, [onDocChange])
@@ -168,14 +216,21 @@ export function Editor({
           isolateProgrammaticEdits,
           drawSelection(),
           highlightActiveLine(),
-          // Playwright drives 'Control+A' and 'Control+Home' verbatim
-          // regardless of platform; defaultKeymap's Mod-a/Mod-Home only
-          // resolve to Ctrl on non-mac, so these keep select-all and
-          // jump-to-start reachable the same way on every OS the e2e suite
-          // runs against.
+          // Playwright drives 'Control+A', 'Control+Home' and 'Control+Z'
+          // verbatim regardless of platform; defaultKeymap's Mod-a/Mod-Home
+          // and historyKeymap's Mod-z only resolve to Ctrl on non-mac, so
+          // these keep select-all, jump-to-start and undo reachable the same
+          // way on every OS the e2e suite runs against. Paste is likewise
+          // driven as the literal 'Control+V' combo, which is not the
+          // platform's native paste shortcut on every OS CI runs on and so
+          // never reaches the contenteditable as a browser paste event -
+          // this reads the clipboard directly instead.
           keymap.of([
             { key: 'Ctrl-a', run: selectAll },
             { key: 'Ctrl-Home', run: cursorDocStart },
+            { key: 'Ctrl-z', run: undo },
+            { key: 'Ctrl-y', run: redo },
+            { key: 'Ctrl-v', run: pasteFromClipboard },
             ...defaultKeymap,
             ...historyKeymap,
           ]),
@@ -186,12 +241,25 @@ export function Editor({
           markdown({ addKeymap: false }),
           livePreview(),
           pendingRevision(),
+          // FR-5's inline continuation. The Scheduler's transport reads the
+          // live document text and API key through accessors rather than a
+          // closed-over value, so it can be built here before the view -
+          // and therefore `viewRef.current` - exists.
+          ghostText({
+            transport: createContinuationTransport({
+              documentText: () => viewRef.current!.state.doc.toString(),
+              apiKey: () => useAppStore.getState().apiKey,
+            }),
+            isEnabled: () => useAppStore.getState().predictionsEnabled,
+            modelId: () => useAppStore.getState().selectedModelId,
+          }),
           EditorView.lineWrapping,
           theme,
           editableCompartment.of([
             EditorView.editable.of(editable),
             EditorState.readOnly.of(!editable),
           ]),
+          describedByCompartment.of(describedByExtension(describedById)),
           EditorView.updateListener.of((u) => {
             if (u.docChanged || u.selectionSet) {
               onDocChangeRef.current?.(u.state.doc.toString(), u.state.selection.main.head)
@@ -232,6 +300,7 @@ export function Editor({
       pendingSpanField?: typeof pendingSpanField
       setPendingRevision?: typeof setPendingRevision
       acceptRevision?: (revision: Revision) => void
+      ghostTextStateField?: { getGhostText: () => string | null }
     }
     windowHandle.pendingSpanField = pendingSpanField
     windowHandle.setPendingRevision = setPendingRevision
@@ -241,6 +310,12 @@ export function Editor({
         effects: setPendingRevisionEffect.of(null),
       })
     }
+    // FR-5's ghost-text specs read the current continuation off this handle
+    // rather than scraping the widget's rendered text, published the same
+    // way the pending-revision handles above are.
+    windowHandle.ghostTextStateField = {
+      getGhostText: () => view.state.field(ghostField, false)?.text ?? null,
+    }
 
     return () => {
       view.destroy()
@@ -249,6 +324,7 @@ export function Editor({
       delete windowHandle.pendingSpanField
       delete windowHandle.setPendingRevision
       delete windowHandle.acceptRevision
+      delete windowHandle.ghostTextStateField
     }
     // Mount-once on purpose: rebuilding the view on every render would throw
     // away undo history, which AC-3.3 depends on.
@@ -265,6 +341,40 @@ export function Editor({
       ]),
     })
   }, [editable, editableCompartment])
+
+  // The cue mounts and unmounts as the document empties and fills, so the
+  // description has to follow it rather than being fixed at mount.
+  useEffect(() => {
+    const view = viewRef.current
+    if (!view) return
+    view.dispatch({
+      effects: describedByCompartment.reconfigure(describedByExtension(describedById)),
+    })
+  }, [describedById, describedByCompartment])
+
+  // This is a single-surface writing app: there is nowhere else on the page
+  // a keystroke is meant to go. Tab has no next stop after the editor (the
+  // key gate/top bar precede it in DOM order), so it exits focus to the
+  // document body rather than trapping it anywhere - the onboarding cue's
+  // own pointer-events-none already keeps it out of the tab order. Once
+  // focus has left to nothing in particular, the next keystroke should still
+  // reach the editor rather than silently doing nothing, exactly as a click
+  // on blank space already does above.
+  useEffect(() => {
+    if (!editable) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (document.activeElement !== document.body) return
+      // Only a single printable character is worth reclaiming focus for -
+      // Enter, Tab, arrows and the like are navigation/control keys with no
+      // meaning to redirect into the document once focus has already left
+      // it, and refocusing for them would let their own default editing
+      // command (e.g. Enter's newline) fire into the document unasked.
+      if (e.key.length !== 1) return
+      viewRef.current?.focus()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [editable])
 
   return (
     <>
@@ -289,6 +399,16 @@ export function Editor({
       />
       {selection && !hasPendingRevision && viewRef.current && (
         <SelectionActionBar view={viewRef.current} from={selection.from} to={selection.to} />
+      )}
+      {refinementFailureMessage && (
+        <FailureBanner
+          message={refinementFailureMessage}
+          onRetry={() => {
+            clearRefinementFailure()
+            refinementRetry?.()
+          }}
+          onDismiss={clearRefinementFailure}
+        />
       )}
     </>
   )

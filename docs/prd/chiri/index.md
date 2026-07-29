@@ -136,14 +136,14 @@ The three structural guarantees that hold this in place are that continuations a
 | ID | Title | Priority | Implementation | Detail |
 |---|---|---|---|---|
 | FR-1 | API key gate | P0 | Built, partially verified | [fr-1.md](./fr-1.md) |
-| FR-2 | Launch identity | P2 | In progress | Below |
+| FR-2 | Launch identity | P2 | Built | Below |
 | FR-3 | Single Markdown document surface | P0 | Built and verified | Below |
-| FR-4 | Local persistence of the document | P0 | Not started | Below |
+| FR-4 | Local persistence of the document | P0 | Built | Below |
 | FR-5 | Inline continuation prediction | P0 | Not started | [fr-5.md](./fr-5.md) |
-| FR-6 | Selection-triggered AI revisions | P0 | Not started | [fr-6.md](./fr-6.md) |
+| FR-6 | Selection-triggered AI revisions | P0 | Built, partially verified | [fr-6.md](./fr-6.md) |
 | FR-7 | Refine a revision in place | P0 | Not started | Below |
 | FR-8 | Model selector | P1 | Built, partially verified | Below |
-| FR-9 | Export the document | P1 | Not started | Below |
+| FR-9 | Export the document | P1 | Built, partially verified | Below |
 | FR-10 | Prediction request discipline | P0 | Not started | Below |
 | FR-11 | Empty-document onboarding cue | P1 | Not started | Below |
 | FR-12 | AI failure and offline behavior | P0 | Not started | Below |
@@ -274,6 +274,15 @@ A user who never selects anything never sees a revision.
 
 The action bar, revision lifecycle, scoping rules, and conflict handling: [fr-6.md](./fr-6.md).
 
+**Implementation:** Built, partially verified.
+The action bar, the request path, the inline review surface, accept, reject, the span tracking through concurrent edits, the out-of-span containment check, and the paragraph-count refusal are all built and covered by [the test plan](../../tests/chiri/fr-6.md): T-FR-6-2, 3, 6, 7, 9, 10, and 11 are automated and passing on Chromium.
+
+Seventeen of the plan's twenty-four scenarios are unwritten, and these P0 ones name real gaps in the code rather than merely missing tests:
+T-FR-6-12 (a second request while one is pending is refused) and T-FR-6-13 (clearing the selection cancels an in-flight request) have no implementation at all - `SelectionActionBar` guards re-entry with a local `busy` flag and passes no `AbortSignal`.
+T-FR-6-21 (a visible, dismissible failure message with retry) surfaces a plain line of text with no retry affordance.
+T-FR-6-1 (no revision ever appears without a selection), T-FR-6-4 (the free-text instruction path), T-FR-6-5 (clearing the selection dismisses the bar), T-FR-6-8 (an out-of-span response is discarded), T-FR-6-14 (keyboard-only operation), and T-FR-6-15 (a pending revision does not survive reload) are unverified.
+Firefox and WebKit have not been run at all; every result above is Chromium only.
+
 ### FR-7: Refine a revision in place
 
 **Priority:** P0
@@ -340,6 +349,12 @@ The curated list's exact membership, and the request wiring behind it, are owned
 
 **Priority:** P1
 **Depends on:** FR-3
+**Implementation:** Built, partially verified.
+8 of the 17 test-plan scenarios are automated: T-FR-9-1, 2, 3, 4, 7, 8, 9, and 15, running as 11 cases because T-FR-9-3 is table-driven over five headings.
+They pass on Chromium and Firefox.
+On WebKit the four scenarios that read the clipboard back (T-FR-9-1, 2, 8, 15) fail on `NotAllowedError`, because WebKit does not support granting `clipboard-read` to a context the way Chromium does; this is a harness limit, not a defect, but it does mean AC-9.1 is unproven on Safari, which the test plan explicitly calls out as the browser most likely to differ.
+T-FR-9-5 and T-FR-9-6, the pending-output exclusion scenarios behind AC-9.5, are owed once FR-5 and FR-6 land in the editor.
+T-FR-9-10 through T-FR-9-14 are unwritten filename and determinism edge cases, and T-FR-9-16 and T-FR-9-17 are manual-only.
 
 Because there is no account and no server copy, export is how the user's work leaves the browser.
 Chiri offers copy-to-clipboard and download as a `.md` file, both producing the canonical Markdown of the current document.
@@ -482,8 +497,6 @@ Target is WCAG 2.1 AA for contrast and keyboard operability.
 
 NFR-7 Browser support: the app functions on current Chrome, Safari, Firefox, and Edge on desktop.
 Mobile browsers render a usable editor but are not a design target, and no acceptance criterion is gated on mobile.
-
-NFR-8 Offline degradation: with no network, the app loads a previously saved document, permits full editing, and persists changes, per AC-12.1.
 
 NFR-9 Localization: the interface ships in English only in v1, and the model may produce output in whatever language the document is written in.
 No acceptance criterion depends on the interface being translated.

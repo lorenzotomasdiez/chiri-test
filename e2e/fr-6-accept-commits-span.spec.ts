@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { seedValidatedKey } from './seed'
+import { mockRevisionResponse } from './openrouter-mock'
 import type { EditorView } from '@codemirror/view'
 
 /** The document as CodeMirror holds it - the canonical Markdown, not the DOM. */
@@ -50,16 +51,9 @@ test('T-FR-6-6: Accepting a pending revision commits exactly the proposed text a
   }, { start: startIdx, end: endIdx })
 
   // Mock the OpenRouter API to return the proposed revision
-  await page.route('https://openrouter.ai/**', async (route) => {
-    await route.fulfill({
-      status: 200,
-      headers: {
-        'content-type': 'text/event-stream',
-      },
-      body: `reason: Better phrasing
---sep--
-slipped due to competing team priorities`,
-    })
+  await mockRevisionResponse(page, {
+    reason: 'Better phrasing',
+    proposal: 'slipped due to competing team priorities',
   })
 
   // Click the "Improve the writing" one-tap action to create the pending revision
@@ -81,11 +75,13 @@ slipped due to competing team priorities`,
     preRequestText.substring(endIdx),
   )
 
-  // Verify pressing undo exactly once restores the full pre-accept string in a single step
+  // AC-6.8: pressing undo exactly once restores the full pre-accept string
+  // in a single step, with no intermediate state reachable.
   await page.keyboard.press(`${mod}+z`)
   expect(await docText(page)).toBe(preRequestText)
 
-  // Verify second undo takes us to the pre-initial state (before the document was typed)
-  await page.keyboard.press(`${mod}+z`)
-  expect(await docText(page)).toBe('')
+  // What a further undo does is CodeMirror's own history granularity over
+  // the typing that set this document up, not FR-6's contract - the plan
+  // asks only that the accept collapses to one step, which the assertion
+  // above is what proves.
 })

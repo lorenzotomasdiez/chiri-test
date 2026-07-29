@@ -48,6 +48,9 @@ export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) 
   const [instruction, setInstruction] = useState('')
   const [message, setMessage] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  // What has streamed back so far, for the progress line. Never rendered as
+  // the proposal itself - see the AC-6.9 note in `runRevision`.
+  const [streamed, setStreamed] = useState('')
   const modelId = useAppStore((s) => s.selectedModelId)
   const apiKey = useAppStore((s) => s.apiKey)
 
@@ -67,21 +70,34 @@ export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) 
     }
 
     setMessage(null)
+    setStreamed('')
     setBusy(true)
 
     try {
       const promptText = userInstruction ? `${userInstruction}\n\n${selectedText}` : selectedText
       const requestBody = buildRevisionRequest(modelId, promptText)
 
-      let raw: string
+      let completion: string
       try {
-        raw = await requestRevisionCompletion(requestBody, apiKey)
+        // The response streams, and is consumed as it streams: `onFragment`
+        // drives the progress line below. What it must NOT drive is the
+        // review surface - AC-6.9 requires a response reaching outside the
+        // span to render nothing at all, and that can only be judged once
+        // the whole proposal has arrived. So the card is dispatched once,
+        // after the containment check, while the progress indicator is what
+        // the user watches in the meantime.
+        completion = await requestRevisionCompletion(
+          requestBody,
+          apiKey,
+          undefined,
+          (_fragment, soFar) => setStreamed(soFar),
+        )
       } catch {
         setMessage('The revision request did not complete.')
         return
       }
 
-      const split = splitRevisionResponse(raw)
+      const split = completion ? splitRevisionResponse(completion) : undefined
       if (!split) {
         setMessage('The revision could not be understood.')
         return
@@ -102,6 +118,7 @@ export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) 
       })
     } finally {
       setBusy(false)
+      setStreamed('')
     }
   }
 
@@ -159,6 +176,31 @@ export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) 
         }}
         style={{ border: 'none', outline: 'none', fontSize: 13 }}
       />
+
+      {busy && (
+        <div
+          data-testid="action-progress"
+          role="status"
+          aria-live="polite"
+          style={{ fontSize: 12, color: '#77767B', display: 'flex', alignItems: 'center', gap: 6 }}
+        >
+          <span
+            aria-hidden="true"
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              backgroundColor: '#77767B',
+              animation: 'chiri-pulse 1s ease-in-out infinite',
+            }}
+          />
+          {/* The character count, not the text itself: watching the number
+              climb is the proof that something is arriving, without pinning
+              a proposal on screen before AC-6.9's containment check has run
+              and possibly declined it. */}
+          {streamed.length > 0 ? `Writing... ${streamed.length} characters` : 'Writing...'}
+        </div>
+      )}
 
       {message && (
         <div data-testid="action-message" style={{ fontSize: 12, color: '#B3261E' }}>

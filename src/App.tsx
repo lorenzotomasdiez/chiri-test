@@ -8,6 +8,9 @@ import { useLaunchKeyBuffer } from './hooks/useLaunchKeyBuffer'
 import { usePersistDocument } from './hooks/usePersistDocument'
 import { useAppStore } from './state/store'
 
+/** Shared by the cue's `id` and the editor's `aria-describedby`, so the two cannot drift apart. */
+const ONBOARDING_CUE_ID = 'onboarding-cue'
+
 export default function App() {
   // null until the user has typed since boot - then the truth about
   // emptiness, overriding whatever the persisted document loaded with.
@@ -63,6 +66,13 @@ export default function App() {
         <div className="relative h-[900px]">
           {empty && unblocked && (
             <p
+              // NFR-6: the cue is the only place a first-time user is told how
+              // to accept a continuation, so it has to reach someone who never
+              // sees it. The editor points at this id via aria-describedby
+              // below, which is spoken on focus - a live region would not be,
+              // since the cue is already present at first paint rather than
+              // appearing later.
+              id={ONBOARDING_CUE_ID}
               data-testid="onboarding-cue"
               className="pointer-events-none absolute top-0 left-0 text-ink"
               style={{ opacity: 0.4 }}
@@ -73,6 +83,10 @@ export default function App() {
           <Editor
             initialDoc={initialDoc}
             initialCaretOffset={initialCaretOffset}
+            // Only while the cue is actually rendered. Left pointing at it
+            // once the document has content, the editor would describe itself
+            // by an element that no longer exists.
+            describedById={empty && unblocked ? ONBOARDING_CUE_ID : undefined}
             onDocChange={(text, caretOffset) => {
               setTypedEmpty(text.length === 0)
               setDocumentText(text)

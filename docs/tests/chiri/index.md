@@ -18,7 +18,7 @@ These describe what to verify, not how to code it: they are written before the i
 | FR-1 | API key gate | P0 | 22 | 12 | [fr-1.md](./fr-1.md) |
 | FR-2 | Launch identity | P2 | 12 | 7 | [fr-2.md](./fr-2.md) |
 | FR-3 | Single Markdown document surface | P0 | 13 | 7 | [fr-3.md](./fr-3.md) |
-| FR-4 | Local persistence of the document | P0 | 14 | 6 | [fr-4.md](./fr-4.md) |
+| FR-4 | Local persistence of the document | P0 | 13 | 5 | [fr-4.md](./fr-4.md) |
 | FR-5 | Inline continuation prediction | P0 | 30 | 16 | [fr-5.md](./fr-5.md) |
 | FR-6 | Selection-triggered AI revisions | P0 | 24 | 16 | [fr-6.md](./fr-6.md) |
 | FR-7 | Refine a revision in place | P0 | 14 | 7 | [fr-7.md](./fr-7.md) |
