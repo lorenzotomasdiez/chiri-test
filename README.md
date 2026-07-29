@@ -6,7 +6,7 @@ Writing tools put the AI in a sidebar, so you copy text out, prompt it, and past
 Chiri puts it in the document: ahead of the caret it predicts, behind the caret it waits to be invited.
 It is client-only - no backend, no accounts, no telemetry - and your browser calls OpenRouter directly with a key you paste at runtime and that never leaves `localStorage`.
 
-![Chiri proposing a revision inline, with the original struck through and Accept / Reject beneath it](./docs/proof/fr-6/05_improvement_proposal_received.png)
+![Chiri in use: prediction ghost text appearing ahead of the caret as the document is written](./docs/media/chiri-demo.gif)
 
 ## Built by an agentic pipeline
 
