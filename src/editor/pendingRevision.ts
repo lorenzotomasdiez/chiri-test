@@ -270,6 +270,11 @@ class RevisionWidget extends WidgetType {
     acceptButton.type = 'button'
     acceptButton.textContent = 'Accept'
     acceptButton.setAttribute('data-testid', 'revision-accept')
+    // WebKit/Safari excludes native <button>s from the default Tab order
+    // unless Full Keyboard Access is on; an explicit tabIndex overrides that
+    // default everywhere, matching the pattern already used for every other
+    // interactive control in this app (TopBar, ModelSelector, PredictionsToggle).
+    acceptButton.tabIndex = 0
     stylePrimaryButton(acceptButton)
     acceptButton.addEventListener('mousedown', (event) => event.preventDefault())
     acceptButton.addEventListener('click', () => acceptPendingRevision(view, revision))
@@ -279,6 +284,7 @@ class RevisionWidget extends WidgetType {
     rejectButton.type = 'button'
     rejectButton.textContent = 'Reject'
     rejectButton.setAttribute('data-testid', 'revision-reject')
+    rejectButton.tabIndex = 0
     styleSecondaryButton(rejectButton)
     rejectButton.addEventListener('mousedown', (event) => event.preventDefault())
     rejectButton.addEventListener('click', () => rejectPendingRevision(view))
@@ -288,6 +294,7 @@ class RevisionWidget extends WidgetType {
     refineButton.type = 'button'
     refineButton.textContent = 'Refine'
     refineButton.setAttribute('data-testid', 'revision-refine')
+    refineButton.tabIndex = 0
     styleSecondaryButton(refineButton)
     refineButton.addEventListener('mousedown', (event) => event.preventDefault())
     // A native button's default Enter-activation is a synthesized click, but
@@ -374,6 +381,7 @@ class RevisionWidget extends WidgetType {
     submitButton.type = 'button'
     submitButton.textContent = 'Submit'
     submitButton.setAttribute('data-testid', 'revision-refine-submit')
+    submitButton.tabIndex = 0
     // The reference has no Submit control - Enter carries the turn there. The
     // button stays because `revision-refine-submit` is asserted by the FR-7
     // specs, but it is CC-BTN.5's text button rather than one of the compact
