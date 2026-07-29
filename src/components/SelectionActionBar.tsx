@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { EditorView } from '@codemirror/view'
 import { useAppStore } from '../state/store'
 import { buildRevisionRequest } from '../core/prompt'
@@ -55,6 +55,12 @@ export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) 
   const [streamed, setStreamed] = useState('')
   const modelId = useAppStore((s) => s.selectedModelId)
   const apiKey = useAppStore((s) => s.apiKey)
+  // AC-6.14/T-FR-6-13: the bar unmounts the instant the selection clears
+  // (Editor.tsx only renders it while a selection exists), which is exactly
+  // when an in-flight request must stop mattering - so the cleanup below is
+  // the cancellation, not just a memory-safety habit.
+  const abortRef = useRef<AbortController | null>(null)
+  useEffect(() => () => abortRef.current?.abort(), [])
 
   const startCoords = view.coordsAtPos(from)
   const endCoords = view.coordsAtPos(to)
@@ -79,6 +85,9 @@ export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) 
     busyRef.current = true
     setBusy(true)
 
+    const controller = new AbortController()
+    abortRef.current = controller
+
     try {
       const promptText = userInstruction ? `${userInstruction}\n\n${selectedText}` : selectedText
       const requestBody = buildRevisionRequest(modelId, promptText)
@@ -95,10 +104,14 @@ export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) 
         completion = await requestRevisionCompletion(
           requestBody,
           apiKey,
-          undefined,
+          controller.signal,
           (_fragment, soFar) => setStreamed(soFar),
         )
       } catch (error) {
+        // T-FR-6-13: a controller aborted by this component's own unmount
+        // means the user cancelled on purpose by clearing the selection -
+        // that stays silent, not a failure, and nothing is dispatched below.
+        if (controller.signal.aborted) return
         // AC-12.2: the user selected text, clicked, and is waiting, so this
         // is always visible, always dismissible, and always retryable - and
         // the retry re-sends this same request over this same span rather
@@ -108,6 +121,10 @@ export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) 
         useAppStore.getState().reportRequestFailure(error, () => void runRevision(userInstruction))
         return
       }
+
+      // The response arrived after the selection this request was for was
+      // already cleared (or superseded) - stale, so nothing is dispatched.
+      if (controller.signal.aborted) return
 
       // A response that arrived intact but carries no usable proposal is the
       // same failure to the user as one that never arrived (AC-12.6), so it
