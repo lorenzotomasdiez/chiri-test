@@ -103,13 +103,11 @@ export function TopBar() {
         </div>
       </div>
 
-      {copyFailed && (
-        <FailureBanner
-          message="Couldn't copy to the clipboard."
-          onRetry={() => void writeToClipboard()}
-          onDismiss={() => setCopyFailed(false)}
-        />
-      )}
+      <FailureBanner
+        message={copyFailed ? "Couldn't copy to the clipboard." : null}
+        onRetry={() => void writeToClipboard()}
+        onDismiss={() => setCopyFailed(false)}
+      />
     </header>
   )
 }

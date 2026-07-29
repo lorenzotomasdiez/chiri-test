@@ -455,17 +455,15 @@ export function Editor({
           alongside the document rather than over it, so AC-12.1's sibling
           promise holds too: typing carries on underneath while it is showing
           (T-FR-12-15). */}
-      {requestFailureMessage && (
-        <FailureBanner
-          message={requestFailureMessage}
-          onRetry={() => {
-            const retry = requestRetry
-            clearRequestFailure()
-            retry?.()
-          }}
-          onDismiss={clearRequestFailure}
-        />
-      )}
+      <FailureBanner
+        message={requestFailureMessage}
+        onRetry={() => {
+          const retry = requestRetry
+          clearRequestFailure()
+          retry?.()
+        }}
+        onDismiss={clearRequestFailure}
+      />
     </>
   )
 }
