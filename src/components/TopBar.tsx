@@ -3,6 +3,7 @@ import { Icon } from './Icon'
 import { PredictionsToggle } from './PredictionsToggle'
 import { ModelSelector } from './ModelSelector'
 import { FailureBanner } from './FailureBanner'
+import { StorageWarningBanner } from './StorageWarningBanner'
 import { useAppStore } from '../state/store'
 import { deriveFilename, toExportText } from '../core/export'
 
@@ -24,7 +25,9 @@ import { deriveFilename, toExportText } from '../core/export'
 export function TopBar() {
   const [copied, setCopied] = useState(false)
   const [copyFailed, setCopyFailed] = useState(false)
+  const [storageWarningDismissed, setStorageWarningDismissed] = useState(false)
   const documentText = useAppStore((s) => s.documentText)
+  const keyPersisted = useAppStore((s) => s.keyPersisted)
 
   async function writeToClipboard() {
     const text = toExportText(documentText)
@@ -109,6 +112,9 @@ export function TopBar() {
           onRetry={() => void writeToClipboard()}
           onDismiss={() => setCopyFailed(false)}
         />
+      )}
+      {!keyPersisted && !storageWarningDismissed && (
+        <StorageWarningBanner onDismiss={() => setStorageWarningDismissed(true)} />
       )}
     </header>
   )
