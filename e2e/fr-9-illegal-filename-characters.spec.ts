@@ -39,10 +39,11 @@ test('T-FR-9-9: Filesystem-illegal heading characters still yield a usable filen
   expect(suggestedFilename).toMatch(/\.md$/)
 
   // Assert filename contains none of the filesystem-illegal characters
-  const illegalCharacters = /[\/\\:*?"<>|]/
+  const illegalCharacters = /[/\\:*?"<>|]/
   expect(suggestedFilename).not.toMatch(illegalCharacters)
 
   // Assert no control characters (ASCII 0-31 and 127)
+  // eslint-disable-next-line no-control-regex -- intentionally asserting these are absent
   const controlCharacters = /[\x00-\x1f\x7f]/
   expect(suggestedFilename).not.toMatch(controlCharacters)
 
