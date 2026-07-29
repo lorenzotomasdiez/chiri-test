@@ -97,11 +97,34 @@ const theme = EditorView.theme({
     borderRadius: '4px',
     padding: '0 4px',
   },
+  // CC-DOC.7: container fill, 16px padding, 4px radius, a 30% hairline
+  // border, and horizontal scroll rather than wrap - each line of the fence
+  // carries the fill/padding-x/side-borders/no-wrap treatment, and only the
+  // first/last line add the top/bottom edge (see codeBlockRange in
+  // livePreview.ts), so a multi-line block reads as one boxed shape.
   '.cm-lp-codeblock': {
     fontFamily:
       'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
     fontSize: '14px',
     backgroundColor: '#F1EDEC',
+    paddingLeft: '16px',
+    paddingRight: '16px',
+    borderLeft: '1px solid rgba(199, 198, 202, 0.3)',
+    borderRight: '1px solid rgba(199, 198, 202, 0.3)',
+    whiteSpace: 'pre',
+    overflowX: 'auto',
+  },
+  '.cm-lp-codeblock-start': {
+    paddingTop: '16px',
+    borderTop: '1px solid rgba(199, 198, 202, 0.3)',
+    borderTopLeftRadius: '4px',
+    borderTopRightRadius: '4px',
+  },
+  '.cm-lp-codeblock-end': {
+    paddingBottom: '16px',
+    borderBottom: '1px solid rgba(199, 198, 202, 0.3)',
+    borderBottomLeftRadius: '4px',
+    borderBottomRightRadius: '4px',
   },
   '.cm-lp-quote': {
     color: '#46464A',

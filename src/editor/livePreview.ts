@@ -77,6 +77,20 @@ function collectSpans(view: EditorView): { visual: VisualSpan[]; atomic: AtomicS
     const endLine = doc.lineAt(toPos).number
     for (let l = startLine; l <= endLine; l++) line(doc.line(l).from, className)
   }
+  // CC-DOC.7's box (padding/radius/border) reads as one shape wrapping the
+  // whole fenced block, not a border repeated on every line - so the first
+  // and last line each get an extra boundary class carrying the edge that
+  // plain interior lines don't (top vs bottom padding/border/radius).
+  const codeBlockRange = (fromPos: number, toPos: number) => {
+    const startLine = doc.lineAt(fromPos).number
+    const endLine = doc.lineAt(toPos).number
+    for (let l = startLine; l <= endLine; l++) {
+      let className = 'cm-lp-codeblock'
+      if (l === startLine) className += ' cm-lp-codeblock-start'
+      if (l === endLine) className += ' cm-lp-codeblock-end'
+      line(doc.line(l).from, className)
+    }
+  }
 
   // End offset of the most recent Link node confirmed to have a target.
   // Links do not nest, and iterate() visits a parent before its children and
@@ -148,7 +162,7 @@ function collectSpans(view: EditorView): { visual: VisualSpan[]; atomic: AtomicS
             // this covers both without hiding either.
             break
           case 'FencedCode':
-            lineRange(node.from, node.to, 'cm-lp-codeblock')
+            codeBlockRange(node.from, node.to)
             break
           case 'Blockquote':
             lineRange(node.from, node.to, 'cm-lp-quote')
