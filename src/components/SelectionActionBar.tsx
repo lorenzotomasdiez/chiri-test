@@ -121,6 +121,10 @@ export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) 
       }
 
       const result = validateResponseSpan(view.state.doc.toString(), from, to, split.body)
+      if (result.kind === 'unchanged') {
+        setMessage("Nothing needed to change.")
+        return
+      }
       if (result.kind === 'declined') {
         setMessage('That revision touched text outside the selection and was discarded.')
         return

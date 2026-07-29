@@ -47,4 +47,28 @@ describe('Response span containment', () => {
     expect(acceptedResult.pending).toBeDefined()
     expect(acceptedResult.pending.proposal).toBe(inSpanResponse)
   })
+
+  it('T-FR-6-19: A response identical to the selected text is neither accepted nor declined', () => {
+    const documentText = 'Sales rose in Q1. The team shipped two features.'
+    const selectedStart = 19
+    const selectedEnd = 49
+    const selectedText = documentText.slice(selectedStart, selectedEnd)
+
+    const result = validateResponseSpan(documentText, selectedStart, selectedEnd, selectedText)
+
+    expect(result.kind).toBe('unchanged')
+    expect(result.accepted).toBe(false)
+    expect(result.documentText).toBe(documentText)
+
+    // Padding whitespace around an otherwise-identical response still counts
+    // as unchanged - the model echoing the span back verbatim, plus stray
+    // whitespace, is not a proposal worth reviewing.
+    const paddedResult = validateResponseSpan(
+      documentText,
+      selectedStart,
+      selectedEnd,
+      `  ${selectedText}\n`,
+    )
+    expect(paddedResult.kind).toBe('unchanged')
+  })
 })
