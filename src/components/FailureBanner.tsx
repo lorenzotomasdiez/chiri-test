@@ -18,7 +18,7 @@ export function FailureBanner({ message, onRetry, onDismiss }: FailureBannerProp
     <div
       data-testid="failure-message"
       role="alert"
-      className="fixed top-14 right-6 z-30 flex items-center gap-3 rounded border border-hairline/30 bg-paper px-4 py-3 text-[14px] text-error shadow-[0_4px_32px_rgba(0,0,0,0.08)]"
+      className="fixed top-14 right-6 z-30 flex items-center gap-3 rounded border border-hairline/30 bg-paper px-4 py-3 text-[14px] text-error shadow-[0_4px_32px_rgba(0,0,0,0.02)]"
     >
       <Icon name="error" className="shrink-0 text-error" />
       <span>{message}</span>
