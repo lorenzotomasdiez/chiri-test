@@ -86,6 +86,16 @@ test('T-CC-TOGGLE-1: Predictions toggle is a real button whose knob carries the 
   // CC-TOGGLE.6: aria-pressed becomes "false"
   await expect(toggleButton).toHaveAttribute('aria-pressed', 'false')
 
+  // CC-TOGGLE.4, CC-MOTION.5: the fill and knob animate over 200ms rather
+  // than snapping, so their end states are only settled once that
+  // transition has finished.
+  await pill.evaluate(
+    el =>
+      new Promise<void>(resolve => {
+        el.addEventListener('transitionend', () => resolve(), { once: true })
+      }),
+  )
+
   // CC-TOGGLE.3, CC-TOGGLE.5: Fill becomes hairline colour rgb(199, 198, 202)
   const fillColorOff = await pill.evaluate(el => window.getComputedStyle(el).backgroundColor)
   expect(fillColorOff).toBe('rgb(199, 198, 202)')
