@@ -25,8 +25,25 @@ export interface RequestBody {
   messages: ChatMessage[]
 }
 
+/**
+ * A chat model handed a document and nothing else reads it as something said
+ * to it, and answers. That is what put "I'm doing well, thank you! How about
+ * you?" under a document reading "hello how you doing?" - a perfectly good
+ * reply, and the wrong thing entirely, because the writer is writing a note,
+ * not talking to anyone.
+ *
+ * So the message says what role the model is in before it says what to
+ * produce: it is the author's own hand, extending their draft. The
+ * question-mark case is called out by name because it is where the pull to
+ * answer is strongest and where the failure was actually seen.
+ */
 const CONTINUATION_SYSTEM_MESSAGE =
-  'Continue the text with at most two sentences. No preamble, no quoting, and never restate text already present.'
+  'Continue the text with at most two sentences. ' +
+  'You are the autocomplete inside the author\'s own Markdown editor: the user message is their draft up to the caret, ' +
+  'and your reply is the text that comes next in that same draft, in their voice, picking up exactly where it stops. ' +
+  'Never answer, reply to, greet, translate, summarize, or comment on the draft, and never address its author - ' +
+  'a draft ending in a question is a question the author is writing down, not one being asked of you. ' +
+  'No preamble, no quoting, and never restate text already present.'
 
 /**
  * The sentinel the model is asked to emit between its reason and the

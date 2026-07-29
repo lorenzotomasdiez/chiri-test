@@ -43,6 +43,13 @@ test.beforeEach(async ({ page }) => {
 test('T-FR-4-4: a pending revision is not restored, and never reaches storage', async ({
   page,
 }) => {
+  // Installed before the first keystroke, not just before the revision is
+  // asked for. Typing raises FR-5 continuation requests to the same endpoint,
+  // and with no route in place those reach the real OpenRouter, which rejects
+  // the seeded fake key - which FR-12 correctly treats as a revoked key and
+  // answers by raising the key gate over the editor (AC-12.4).
+  await mockRevisionResponse(page, { reason: REASON, proposal: PROPOSAL })
+
   await page.locator('[data-testid="editor"] .cm-content').click()
   await page.keyboard.type(ORIGINAL)
   expect(await docText(page)).toBe(ORIGINAL)
@@ -63,7 +70,6 @@ test('T-FR-4-4: a pending revision is not restored, and never reaches storage', 
   })
   expect(selected).toBe('The report was late because the team was busy.')
 
-  await mockRevisionResponse(page, { reason: REASON, proposal: PROPOSAL })
   await page.locator('button:has-text("Improve the writing")').click()
   await page.waitForSelector('[data-testid="revision-decoration"]', { timeout: 5000 })
   await expect(page.locator('[data-testid="revision-decoration"]')).toBeVisible()

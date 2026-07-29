@@ -19,7 +19,47 @@ export const SEEDED_API_KEY = 'sk-or-v1-e2e-seeded-key'
 /** The single localStorage entry the app persists (src/storage/settings.ts). */
 const STORAGE_KEY = 'chiri-settings'
 
+/**
+ * Turns FR-5's continuation off before boot, for specs that script a sequence
+ * of provider responses.
+ *
+ * Continuation and revision share one endpoint, so a background continuation
+ * request can consume a response scripted for the revision under test and
+ * make a passing spec a coincidence. Turning it off is not routing around
+ * FR-5 - it is stating that the scenario is about a requested failure, and
+ * removing the only source of unrequested requests that could be mistaken for
+ * one.
+ */
+export async function seedContinuationDisabled(page: Page) {
+  await page.addInitScript((storageKey) => {
+    let existing: Record<string, unknown> = {}
+    try {
+      const raw = localStorage.getItem(storageKey)
+      if (raw) {
+        const parsed: unknown = JSON.parse(raw)
+        if (parsed && typeof parsed === 'object') existing = parsed as Record<string, unknown>
+      }
+    } catch {
+      existing = {}
+    }
+    localStorage.setItem(storageKey, JSON.stringify({ ...existing, continuationEnabled: false }))
+  }, STORAGE_KEY)
+}
+
 export async function seedValidatedKey(page: Page) {
+  // The seeded key is not a real one, so any request that actually reaches
+  // OpenRouter comes back 401 - and FR-12 answers a rejected key by raising
+  // the key gate over the editor (AC-12.4), which would break any spec that
+  // merely types. Typing is enough to trigger it: FR-5 issues a continuation
+  // request on every settled pause.
+  //
+  // So the claim above - that no spec here makes a real OpenRouter request -
+  // is enforced rather than assumed. Registered first, so a spec's own route
+  // still takes precedence: Playwright matches the most recently added handler.
+  await page.route('https://openrouter.ai/**', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }),
+  )
+
   await page.addInitScript(
     ([storageKey, apiKey]) => {
       // Merge rather than overwrite. This init script re-runs on every

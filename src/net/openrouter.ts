@@ -62,15 +62,67 @@ export async function requestRevisionCompletion(
   signal?: AbortSignal,
   onFragment?: (fragment: string, soFar: string) => void,
 ): Promise<string> {
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    signal,
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  })
+  // AC-12.2 puts a 10-second ceiling on how long a user who asked for a
+  // revision waits before being told it did not happen. A `fetch` has no
+  // deadline of its own: a connection the network accepts and then never
+  // answers hangs for as long as the browser's own timeout, which is minutes.
+  // Without this the requirement's most common failure - a dead connection
+  // rather than a refused one - would surface nothing at all.
+  const deadline = new AbortController()
+  const timer = setTimeout(() => deadline.abort(), REQUEST_DEADLINE_MS)
+  const forwardAbort = () => deadline.abort()
+  signal?.addEventListener('abort', forwardAbort)
+
+  try {
+    return await runRevisionRequest(body, apiKey, deadline.signal, signal, onFragment)
+  } finally {
+    clearTimeout(timer)
+    signal?.removeEventListener('abort', forwardAbort)
+  }
+}
+
+/**
+ * Comfortably inside AC-12.2's 10-second ceiling, so the message is on screen
+ * before it rather than at it - the request has to fail, be classified, and be
+ * rendered, and a deadline set at exactly the ceiling would spend the whole
+ * budget on the wait.
+ */
+const REQUEST_DEADLINE_MS = 9_000
+
+async function runRevisionRequest(
+  body: RequestBody,
+  apiKey: string,
+  signal: AbortSignal,
+  callerSignal: AbortSignal | undefined,
+  onFragment?: (fragment: string, soFar: string) => void,
+): Promise<string> {
+  /**
+   * Turns the deadline's abort into a reportable failure, while an abort that
+   * came from the caller stays an abort. The difference matters: the caller
+   * cancelled on purpose and wants silence (T-FR-12-18), the deadline fired
+   * because nothing came back and the user is still waiting (AC-12.2).
+   */
+  const asFailure = (error: unknown): unknown => {
+    if (signal.aborted && !callerSignal?.aborted) {
+      return new TypeError('The request did not complete within the time allowed.')
+    }
+    return error
+  }
+
+  let response: Response
+  try {
+    response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      signal,
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    })
+  } catch (error) {
+    throw asFailure(error)
+  }
 
   if (!response.ok) {
     let errorBody: unknown
@@ -114,6 +166,11 @@ export async function requestRevisionCompletion(
     }
     emit(decoder.push(textDecoder.decode()))
     emit(decoder.flush())
+  } catch (error) {
+    // The deadline covers the body too, not just the response headers: a
+    // provider that answers and then stops sending is the same wait, from the
+    // user's side, as one that never answers at all.
+    throw asFailure(error)
   } finally {
     reader.releaseLock()
   }

@@ -182,6 +182,15 @@ export function truncateToTwoSentences(text: string): string {
 }
 
 /**
+ * The shortest repeat that is read as an echo rather than a coincidence. A
+ * one- or two-character match happens by chance all the time - a document
+ * ending "It" and a continuation opening "It was" share two characters
+ * without either being an echo - and stripping it would eat the start of a
+ * perfectly good suggestion. An echo worth removing is at least a short word.
+ */
+const MIN_ECHO_CHARS = 3
+
+/**
  * Drops the leading part of a continuation that just repeats the tail of
  * what precedes the caret, so a model that echoes a little context back
  * does not duplicate it in the document once accepted.
@@ -189,12 +198,51 @@ export function truncateToTwoSentences(text: string): string {
 export function suppressDuplicateTail(precedingContext: string, continuation: string): string {
   const context = precedingContext
   const maxOverlap = Math.min(context.length, continuation.length)
-  for (let overlap = maxOverlap; overlap > 0; overlap--) {
+  for (let overlap = maxOverlap; overlap >= MIN_ECHO_CHARS; overlap--) {
     const contextTail = context.slice(context.length - overlap).toLowerCase()
     const continuationHead = continuation.slice(0, overlap).toLowerCase()
     if (contextTail === continuationHead) return continuation.slice(overlap)
   }
   return continuation
+}
+
+/**
+ * Characters that already carry their own join, so a continuation following
+ * one needs no space before it: an opener the next word belongs inside, a
+ * hyphen or slash a word is compounded onto, and the em/en dashes prose
+ * attaches directly.
+ */
+const NO_SPACE_AFTER = new Set(['(', '[', '{', '<', '"', "'", '“', '‘', '-', '/', '—', '–', '*', '_', '#', '>'])
+
+/**
+ * Lands a continuation against the text before the caret the way a person
+ * typing on would land it.
+ *
+ * The model is asked for the words that come next, and it answers with words,
+ * not with the gap between them - so whether the offer needs a leading space
+ * is a fact about the document, not about the response. A document ending
+ * `hello how you doing?` and a response of `I'm doing well` produced
+ * `doing?I'm doing well` before anything looked at the character before the
+ * caret. The mirror case is a document already ending in a space, where the
+ * model's own leading space made a double gap.
+ *
+ * Only spaces and tabs are normalized: a continuation that legitimately opens
+ * on a newline (a new list item, a new paragraph) keeps it.
+ */
+export function joinContinuation(precedingText: string, continuation: string): string {
+  if (continuation === '') return ''
+
+  const previous = precedingText.slice(-1)
+  const startsOnNewline = /^[\r\n]/.test(continuation)
+
+  if (previous === '' || /\s/.test(previous) || startsOnNewline) {
+    return startsOnNewline ? continuation : continuation.replace(/^[^\S\r\n]+/, '')
+  }
+
+  if (/^[^\S\r\n]/.test(continuation)) return continuation
+  if (NO_SPACE_AFTER.has(previous)) return continuation
+
+  return ' ' + continuation
 }
 
 /** True when text is empty or made up only of whitespace. */

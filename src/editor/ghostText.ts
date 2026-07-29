@@ -14,8 +14,21 @@
 import { Prec, StateEffect, StateField } from '@codemirror/state'
 import { Decoration, EditorView, WidgetType, keymap, type DecorationSet } from '@codemirror/view'
 import { Scheduler, type Transport } from '../core/schedule'
-import { isEligible, extractNextWord, sanitizeContinuation } from '../core/continuation'
+import {
+  isEligible,
+  extractNextWord,
+  joinContinuation,
+  sanitizeContinuation,
+  suppressDuplicateTail,
+} from '../core/continuation'
 import { pendingSpanField } from './pendingRevision'
+
+/**
+ * How much of the text before the caret the echo check and the join read.
+ * Generous for the join, which only needs the last character, and sized for
+ * the echo, which is at most a sentence or two of repeated context.
+ */
+const JOIN_CONTEXT_CHARS = 400
 
 export interface Ghost {
   /** Where the ghost begins - the caret position it was requested for. */
@@ -195,7 +208,18 @@ export function ghostText(options: GhostTextOptions) {
       // scheduler's generation guard alone.
       if (!eligible) return
 
-      view.dispatch({ effects: setGhostEffect.of({ anchor: main.head, text: sanitized }) })
+      // The shaping so far only knows the response. These last two steps need
+      // the document too: what the model echoed back of the text before the
+      // caret is dropped, and what remains is joined to that text with the
+      // word gap it needs and no more. A window is enough for both - an echo
+      // longer than this is not an echo, and only the final character decides
+      // the gap.
+      const precedingText = state.doc.sliceString(Math.max(0, main.head - JOIN_CONTEXT_CHARS), main.head)
+      const deduped = suppressDuplicateTail(precedingText, sanitized)
+      const joined = joinContinuation(precedingText, deduped)
+      if (!joined.trim()) return
+
+      view.dispatch({ effects: setGhostEffect.of({ anchor: main.head, text: joined }) })
     },
   })
 

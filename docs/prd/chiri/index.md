@@ -146,7 +146,7 @@ The three structural guarantees that hold this in place are that continuations a
 | FR-9 | Export the document | P1 | Built, partially verified | Below |
 | FR-10 | Prediction request discipline | P0 | Built | Below |
 | FR-11 | Empty-document onboarding cue | P1 | Built | Below |
-| FR-12 | AI failure and offline behavior | P0 | Not started | Below |
+| FR-12 | AI failure and offline behavior | P0 | Built, partially verified | Below |
 
 `Implementation` tracks whether the code exists and what proves it, and is separate from the `Status` field above, which tracks the maturity of this document.
 `Built and verified` means every scenario the requirement's test plan marks automatable is automated and passing.
@@ -440,6 +440,15 @@ The cue's wording, placement, and treatment are owned by the future design docum
 
 **Priority:** P0
 **Depends on:** FR-1, FR-5, FR-6
+**Implementation:** Built, partially verified.
+17 of the 18 test-plan scenarios are automated and passing: T-FR-12-1 through T-FR-12-15, T-FR-12-17, and T-FR-12-18.
+That runs as 28 browser cases on Chromium, several of them table-driven over their failure variants, plus the unit coverage for the three scenarios the plan places at the pure-module layer: T-FR-12-4's failure-revert in `src/core/refine.ts`, T-FR-12-18's cancellation-is-not-failure rule in `src/core/schedule.ts`, and the classification behind all of them in `src/core/failure.ts`.
+T-FR-12-16, the sustained-offline session, is manual by the plan's own direction, since its point is the absence of any error surface across a long real session.
+Firefox and WebKit have not been run.
+
+Two things the requirement implies but does not state were settled here and are worth naming.
+A 403 joins 401 in routing back to the key gate, because an account restricted from using the API is a credential the user has to replace, and FR-1's gate is where that already happens; 402 is deliberately not routed there, since AC-12.5 requires the editor to stay usable when only the balance is exhausted.
+And revision requests now carry a 9-second deadline, because AC-12.2's ceiling is otherwise unmeetable for the most common real failure: a connection the network accepts and never answers, which `fetch` will wait on for minutes.
 
 The AI is a network dependency and the document is not, so failures in the former must never damage or block the latter.
 Chiri degrades to a plain Markdown editor when the model is unreachable, and tells the user only when they asked for something that did not happen.
