@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { EditorView } from '@codemirror/view'
 import { useAppStore } from '../state/store'
 import { buildRevisionRequest } from '../core/prompt'
@@ -50,6 +50,15 @@ export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) 
   const [message, setMessage] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const busyRef = useRef(false)
+  // Aborted on unmount (T-FR-6-13): clearing or replacing the selection
+  // unmounts this bar while a request may still be in flight, and without
+  // this the response would land later and dispatch a proposal over a span
+  // the user is no longer looking at.
+  const controllerRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    return () => controllerRef.current?.abort()
+  }, [])
   // What has streamed back so far, for the progress line. Never rendered as
   // the proposal itself - see the AC-6.9 note in `runRevision`.
   const [streamed, setStreamed] = useState('')
@@ -79,6 +88,9 @@ export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) 
     busyRef.current = true
     setBusy(true)
 
+    const controller = new AbortController()
+    controllerRef.current = controller
+
     try {
       const promptText = userInstruction ? `${userInstruction}\n\n${selectedText}` : selectedText
       const requestBody = buildRevisionRequest(modelId, promptText)
@@ -95,10 +107,14 @@ export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) 
         completion = await requestRevisionCompletion(
           requestBody,
           apiKey,
-          undefined,
+          controller.signal,
           (_fragment, soFar) => setStreamed(soFar),
         )
       } catch (error) {
+        // T-FR-6-13: an abort means the selection this request was for is
+        // already gone (unmounted or superseded), so there is no bar left to
+        // show a failure on and nothing to retry into.
+        if (error instanceof DOMException && error.name === 'AbortError') return
         // AC-12.2: the user selected text, clicked, and is waiting, so this
         // is always visible, always dismissible, and always retryable - and
         // the retry re-sends this same request over this same span rather
@@ -134,6 +150,7 @@ export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) 
         }),
       })
     } finally {
+      controllerRef.current = null
       busyRef.current = false
       setBusy(false)
       setStreamed('')
