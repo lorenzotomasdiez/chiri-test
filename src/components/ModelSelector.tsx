@@ -99,6 +99,7 @@ export function ModelSelector() {
           ref={panelRef}
           data-testid="model-selector-panel"
           role="listbox"
+          className="rounded-lg border border-hairline bg-panel"
           style={{
             // Flush to the bottom of the 48px bar, right-aligned to the
             // trigger rather than to the viewport gutter. CC-MODEL.5's
@@ -111,9 +112,6 @@ export function ModelSelector() {
             top: 48,
             right: panelRight,
             width: 288,
-            backgroundColor: '#FFFFFF',
-            borderRadius: 8,
-            border: '1px solid #C7C6CA',
           }}
         >
           {MODELS.map((model, index) => {
@@ -127,24 +125,15 @@ export function ModelSelector() {
                 aria-selected={isHighlighted}
                 onMouseEnter={() => setHighlightedIndex(index)}
                 onClick={() => commit(index)}
-                style={{
-                  padding: '12px 16px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  backgroundColor: isHighlighted ? '#F1EDEC' : 'transparent',
-                  borderTop: index === 0 ? 'none' : '1px solid rgb(199 198 202 / 0.1)',
-                }}
+                className={`flex cursor-pointer items-center justify-between px-4 py-3 ${
+                  isHighlighted ? 'bg-container' : 'bg-transparent'
+                } ${index === 0 ? 'border-t-0' : 'border-t border-hairline/10'}`}
               >
                 <div>
-                  <div
-                    data-testid="model-row-title"
-                    style={{ fontSize: 14, fontWeight: 500, color: '#1D1D1F' }}
-                  >
+                  <div data-testid="model-row-title" className="text-[14px] font-medium text-ink">
                     {model.displayName}
                   </div>
-                  <div data-testid="model-row-note" style={{ fontSize: 10, color: '#46464A' }}>
+                  <div data-testid="model-row-note" className="text-[10px] text-muted">
                     {model.capabilityNote}
                   </div>
                 </div>

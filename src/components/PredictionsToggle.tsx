@@ -19,12 +19,12 @@ export function PredictionsToggle() {
     >
       <span className="text-[14px] text-muted opacity-60">Predictions</span>
       <div
+        className={predictionsEnabled ? 'bg-ink' : 'bg-hairline'}
         style={{
           width: 32,
           height: 17,
           borderRadius: 9999,
           position: 'relative',
-          backgroundColor: predictionsEnabled ? '#1D1D1F' : '#C7C6CA',
           // The fill and knob position must read correctly the instant the
           // click resolves (assertions run synchronously with no wait), so
           // the property that actually changes is not what transitions.
@@ -35,6 +35,7 @@ export function PredictionsToggle() {
         }}
       >
         <div
+          className="bg-panel"
           style={{
             position: 'absolute',
             top: 2.5,
@@ -42,7 +43,6 @@ export function PredictionsToggle() {
             width: 12,
             height: 12,
             borderRadius: 9999,
-            backgroundColor: '#FFFFFF',
             transitionProperty: 'none',
             transitionDuration: '0.2s',
           }}
