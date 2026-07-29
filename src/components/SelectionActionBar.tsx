@@ -79,6 +79,14 @@ export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) 
     busyRef.current = true
     setBusy(true)
 
+    // T-FR-6-20: identifies this exact request to Editor.tsx's selection
+    // listener, which reports a visible failure and clears this if an edit
+    // destroys [from, to) before the response arrives - see the field's
+    // doc comment in state/store.ts. Compared by identity below, not by
+    // value, so it survives `finally` clearing it back to null.
+    const requestSpan = { from, to }
+    useAppStore.getState().setActiveRevisionSpan(requestSpan)
+
     try {
       const promptText = userInstruction ? `${userInstruction}\n\n${selectedText}` : selectedText
       const requestBody = buildRevisionRequest(modelId, promptText)
@@ -120,6 +128,13 @@ export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) 
         return
       }
 
+      if (useAppStore.getState().activeRevisionSpan !== requestSpan) {
+        // Editor.tsx already saw an edit destroy this exact span and
+        // surfaced the T-FR-6-20 failure itself - nothing left to validate
+        // or render against a span that no longer exists.
+        return
+      }
+
       const result = validateResponseSpan(view.state.doc.toString(), from, to, split.body)
       if (result.kind === 'unchanged') {
         setMessage("Nothing needed to change.")
@@ -141,6 +156,9 @@ export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) 
       busyRef.current = false
       setBusy(false)
       setStreamed('')
+      if (useAppStore.getState().activeRevisionSpan === requestSpan) {
+        useAppStore.getState().setActiveRevisionSpan(null)
+      }
     }
   }
 
