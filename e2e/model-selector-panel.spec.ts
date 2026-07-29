@@ -173,3 +173,38 @@ test('T-CC-MODEL-5: Model dropdown panel anatomy and selection (CC-MODEL.1, CC-M
   const checkIconRow1 = row1Reopened.locator('[data-testid="check-icon"]')
   await expect(checkIconRow1).toHaveCount(0)
 })
+
+test('T-CC-MODEL-13: aria-selected tracks the committed selection, not arrow-key highlight (CC-MODEL.9)', async ({
+  page,
+}) => {
+  // role="option" requires aria-selected to reflect actual selection state,
+  // never mere keyboard focus/highlight - a screen reader user arrowing
+  // through the list must not hear "selected" on every row it passes over.
+  const trigger = page.locator('[data-testid="model-selector-trigger"]')
+  await trigger.click()
+
+  const panel = page.locator('[data-testid="model-selector-panel"]')
+  await expect(panel).toBeVisible()
+
+  const rows = panel.locator('[data-testid="model-row"]')
+
+  // GPT-4o mini (row 0) is selected by default; arrow down twice to highlight
+  // GPT-4.1 (row 2) without committing it.
+  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('ArrowDown')
+
+  await expect(rows.nth(0)).toHaveAttribute('aria-selected', 'true')
+  await expect(rows.nth(1)).toHaveAttribute('aria-selected', 'false')
+  await expect(rows.nth(2)).toHaveAttribute('aria-selected', 'false')
+
+  // The highlighted row still gets the visual container-fill treatment.
+  const highlightedBg = await rows.nth(2).evaluate((el) => window.getComputedStyle(el).backgroundColor)
+  expect(highlightedBg).toBe('rgb(241, 237, 236)')
+
+  // Committing the highlighted row flips aria-selected to it.
+  await page.keyboard.press('Enter')
+  await trigger.click()
+  const rowsReopened = page.locator('[data-testid="model-row"]')
+  await expect(rowsReopened.nth(0)).toHaveAttribute('aria-selected', 'false')
+  await expect(rowsReopened.nth(2)).toHaveAttribute('aria-selected', 'true')
+})
