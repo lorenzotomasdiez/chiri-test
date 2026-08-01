@@ -21,8 +21,9 @@ test('T-FR-9-8: Export works on a completely empty document', async ({ page }) =
   const copyButton = page.getByRole('button', { name: 'Copy' })
   await copyButton.click()
 
-  // Verify the Copy confirmation is shown
-  await expect(copyButton).toHaveText('Copied')
+  // Verify the Copy confirmation is shown beside the button, which keeps its own label
+  await expect(copyButton).toHaveText('Copy')
+  await expect(page.locator('[data-testid="copy-confirmation"]')).toHaveText('Copied')
 
   // Verify clipboard contents are empty
   const clipboardContent = await page.evaluate(() => navigator.clipboard.readText())

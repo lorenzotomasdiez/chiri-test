@@ -22,7 +22,7 @@ import { deriveFilename, toExportText } from '../core/export'
  * the clipboard at all.
  */
 export function TopBar() {
-  const [copied, setCopied] = useState(false)
+  const [copyState, setCopyState] = useState<'idle' | 'visible' | 'fading'>('idle')
   const [copyFailed, setCopyFailed] = useState(false)
   const documentText = useAppStore((s) => s.documentText)
 
@@ -31,10 +31,11 @@ export function TopBar() {
     try {
       await navigator.clipboard.writeText(text)
       setCopyFailed(false)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1500)
+      setCopyState('visible')
+      window.setTimeout(() => setCopyState('fading'), 3000)
+      window.setTimeout(() => setCopyState('idle'), 5000)
     } catch {
-      setCopied(false)
+      setCopyState('idle')
       setCopyFailed(true)
     }
   }
@@ -81,13 +82,24 @@ export function TopBar() {
             tabIndex={0}
             data-testid="copy-button"
             aria-label="Copy"
-            aria-live="polite"
             onClick={handleCopy}
             className="flex items-center gap-1.5 rounded text-[14px] text-ink opacity-70 transition-opacity duration-200 hover:opacity-100 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
             <Icon name="content_copy" className="text-[12px]" />
-            {copied ? 'Copied' : 'Copy'}
+            Copy
           </button>
+
+          {copyState !== 'idle' && (
+            <span
+              data-testid="copy-confirmation"
+              aria-live="polite"
+              className={`select-none text-[10px] font-medium tracking-wide text-ink/40 uppercase transition-opacity duration-[2000ms] ${
+                copyState === 'fading' ? 'opacity-0' : 'opacity-100'
+              }`}
+            >
+              Copied
+            </span>
+          )}
 
           <button
             type="button"

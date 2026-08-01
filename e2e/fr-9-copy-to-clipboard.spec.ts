@@ -34,6 +34,9 @@ test('T-FR-9-1: Copy places the document\'s Markdown on the clipboard and confir
   // Assert clipboard contains exactly the document markdown
   expect(clipboardContent).toBe(editorContent)
 
-  // Assert the Copy button shows confirmation label
-  await expect(copyButton).toHaveText('Copied')
+  // Assert the button's own label stays "Copy" (CC-TOAST.1: confirmation is a
+  // separate label beside the control, not a substitution of it) while a
+  // separate confirmation toast appears beside it
+  await expect(copyButton).toHaveText('Copy')
+  await expect(page.locator('[data-testid="copy-confirmation"]')).toHaveText('Copied')
 })
