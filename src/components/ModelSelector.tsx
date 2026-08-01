@@ -133,7 +133,7 @@ export function ModelSelector() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  backgroundColor: isHighlighted ? '#F1EDEC' : 'transparent',
+                  backgroundColor: isHighlighted || isSelected ? '#F1EDEC' : 'transparent',
                   borderTop: index === 0 ? 'none' : '1px solid rgb(199 198 202 / 0.1)',
                 }}
               >
