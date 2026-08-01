@@ -17,7 +17,7 @@ export function PredictionsToggle() {
       onClick={togglePredictions}
       className="flex items-center gap-2 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
     >
-      <span className="text-[14px] text-muted opacity-60">Predictions</span>
+      <span className="text-[14px] text-muted opacity-80">Predictions</span>
       <div
         style={{
           width: 32,
@@ -25,13 +25,13 @@ export function PredictionsToggle() {
           borderRadius: 9999,
           position: 'relative',
           backgroundColor: predictionsEnabled ? '#1D1D1F' : '#C7C6CA',
-          // The fill and knob position must read correctly the instant the
-          // click resolves (assertions run synchronously with no wait), so
-          // the property that actually changes is not what transitions.
-          // The 0.2s duration is still declared so CC-TOGGLE.4's computed
-          // transitionDuration check holds.
-          transitionProperty: 'none',
+          // CC-TOGGLE.4, CC-MOTION.5: the fill cross-fades and the knob
+          // travels over 200ms. prefers-reduced-motion collapses this to an
+          // instant change via the global transition-duration override in
+          // index.css.
+          transitionProperty: 'background-color',
           transitionDuration: '0.2s',
+          transitionTimingFunction: 'ease',
         }}
       >
         <div
@@ -43,8 +43,9 @@ export function PredictionsToggle() {
             height: 12,
             borderRadius: 9999,
             backgroundColor: '#FFFFFF',
-            transitionProperty: 'none',
+            transitionProperty: 'left',
             transitionDuration: '0.2s',
+            transitionTimingFunction: 'ease',
           }}
         />
       </div>
