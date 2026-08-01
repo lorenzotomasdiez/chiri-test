@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { TopBar } from './components/TopBar'
 import { KeyGateModal } from './components/KeyGateModal'
 import { LaunchSplash } from './components/LaunchSplash'
+import { EditorErrorBoundary } from './components/EditorErrorBoundary'
 import { useLaunchDwell } from './hooks/useLaunchDwell'
 import { useLaunchKeyBuffer } from './hooks/useLaunchKeyBuffer'
 import { usePersistDocument } from './hooks/usePersistDocument'
@@ -94,22 +95,24 @@ export default function App() {
               Start writing. When grey text appears, press Tab to take it.
             </p>
           )}
-          <Suspense fallback={null}>
-            <Editor
-              initialDoc={initialDoc}
-              initialCaretOffset={initialCaretOffset}
-              // Only while the cue is actually rendered. Left pointing at it
-              // once the document has content, the editor would describe itself
-              // by an element that no longer exists.
-              describedById={empty && unblocked ? ONBOARDING_CUE_ID : undefined}
-              onDocChange={(text, caretOffset) => {
-                setTypedEmpty(text.length === 0)
-                setDocumentText(text)
-                onDocChange(text, caretOffset)
-              }}
-              editable={unblocked}
-            />
-          </Suspense>
+          <EditorErrorBoundary>
+            <Suspense fallback={null}>
+              <Editor
+                initialDoc={initialDoc}
+                initialCaretOffset={initialCaretOffset}
+                // Only while the cue is actually rendered. Left pointing at it
+                // once the document has content, the editor would describe itself
+                // by an element that no longer exists.
+                describedById={empty && unblocked ? ONBOARDING_CUE_ID : undefined}
+                onDocChange={(text, caretOffset) => {
+                  setTypedEmpty(text.length === 0)
+                  setDocumentText(text)
+                  onDocChange(text, caretOffset)
+                }}
+                editable={unblocked}
+              />
+            </Suspense>
+          </EditorErrorBoundary>
         </div>
       </main>
       {!unblocked && <KeyGateModal />}
