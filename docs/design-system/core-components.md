@@ -229,7 +229,7 @@ There is nowhere to navigate to.
 
 This control is the visible surface of FR-10's off switch.
 
-CC-TOGGLE.1 The control is the word "Predictions" at `14px` in muted ink at 60% opacity, followed `8px` later by a pill switch.
+CC-TOGGLE.1 The control is the word "Predictions" at `14px` in muted ink at 80% opacity (per CC-ALL.6, 60% falls below WCAG AA against the paper background), followed `8px` later by a pill switch.
 
 CC-TOGGLE.2 The pill is `32px` wide and `16px` to `18px` tall, fully rounded.
 The knob is a `12px` white circle inset `3px` from the pill's edge.
@@ -388,7 +388,7 @@ These are the one-tap action chips.
 
 ### Text button
 
-CC-BTN.5 A text button is a label alone in muted ink at 60%, coming to full ink on hover, optionally underlined on hover with a `4px` underline offset.
+CC-BTN.5 A text button is a label alone in muted ink at 80% (per CC-ALL.6, 60% falls below WCAG AA against the paper background), coming to full ink on hover, optionally underlined on hover with a `4px` underline offset.
 "Clear stored key" is the canonical instance.
 
 ### Text input

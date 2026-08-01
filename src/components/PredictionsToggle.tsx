@@ -17,7 +17,7 @@ export function PredictionsToggle() {
       onClick={togglePredictions}
       className="flex items-center gap-2 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
     >
-      <span className="text-[14px] text-muted opacity-60">Predictions</span>
+      <span className="text-[14px] text-muted opacity-80">Predictions</span>
       <div
         style={{
           width: 32,
