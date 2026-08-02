@@ -113,7 +113,7 @@ const theme = EditorView.theme({
 
   // FR-5's ghost continuation (AC-5.1): grey, never mistakable for
   // committed text, painted as a widget rather than document content.
-  '.cm-ghost-text': { color: '#9B9A9E' },
+  '.cm-ghost-text': { color: '#77767B' },
 })
 
 // Any programmatic doc-changing transaction that does not carry a user-event
