@@ -6,6 +6,7 @@ import {
   EditorView,
   ViewPlugin,
   type ViewUpdate,
+  WidgetType,
 } from '@codemirror/view'
 
 /**
@@ -14,11 +15,12 @@ import {
  * into structured-looking text while the underlying document (what
  * window.__editor.state.doc holds) stays byte-identical Markdown.
  *
- * Scope, per the plan: heading marks, bold/italic marks, and link
- * bracket+URL syntax are hidden while the caret is elsewhere on the line.
- * Fence markers, the blockquote '>', '---' and list marks stay visible -
- * hiding those is not asked for by any spec, and list/quote/fence/hr get
- * line-level styling only.
+ * Scope, per the plan: heading marks, bold/italic marks, link bracket+URL
+ * syntax, and bullet-list markers are hidden (the last replaced with a
+ * ghost-colored dash, per CC-DOC.5) while the caret is elsewhere on the
+ * line. Fence markers, the blockquote '>', '---' and ordered-list numerals
+ * stay visible - hiding those is not asked for by any spec, and
+ * quote/fence/hr/ordered-list get line-level styling only.
  *
  * The hide/reveal split matters beyond looks: rebuilding the "hide" decoration
  * on the very line the caret is actively typing on, every keystroke, is what
@@ -32,6 +34,23 @@ import {
  */
 
 const hiddenMark = Decoration.replace({})
+
+class ListDashWidget extends WidgetType {
+  eq(): boolean {
+    return true
+  }
+
+  toDOM(): HTMLElement {
+    const dash = document.createElement('span')
+    dash.className = 'cm-lp-list-dash'
+    dash.textContent = '-'
+    return dash
+  }
+
+  ignoreEvent(): boolean {
+    return true
+  }
+}
 
 interface AtomicSpan {
   from: number
@@ -65,6 +84,11 @@ function collectSpans(view: EditorView): { visual: VisualSpan[]; atomic: AtomicS
     atomic.push({ from, to })
     if (!onCaretLine(from)) visual.push({ from, to, deco: hiddenMark })
   }
+  const hideWithWidget = (from: number, to: number, widget: WidgetType) => {
+    if (to <= from) return
+    atomic.push({ from, to })
+    if (!onCaretLine(from)) visual.push({ from, to, deco: Decoration.replace({ widget }) })
+  }
   const mark = (from: number, to: number, className: string) => {
     if (to <= from) return
     visual.push({ from, to, deco: Decoration.mark({ class: className }) })
@@ -97,6 +121,11 @@ function collectSpans(view: EditorView): { visual: VisualSpan[]; atomic: AtomicS
   // in document order, so a single running value is enough to tell a real
   // link's marks from a lookalike's.
   let realLinkTo = -1
+
+  // CC-DOC.5 only asks for the disc-replacing dash on unordered lists;
+  // ordered-list numerals stay visible. Lists nest, so this needs a stack
+  // rather than a single running flag.
+  const listTypeStack: Array<'bullet' | 'ordered'> = []
 
   for (const { from, to } of view.visibleRanges) {
     syntaxTree(view.state).iterate({
@@ -173,7 +202,27 @@ function collectSpans(view: EditorView): { visual: VisualSpan[]; atomic: AtomicS
           case 'ListItem':
             line(doc.lineAt(node.from).from, 'cm-lp-listitem')
             break
+          case 'BulletList':
+            listTypeStack.push('bullet')
+            break
+          case 'OrderedList':
+            listTypeStack.push('ordered')
+            break
+          case 'ListMark': {
+            if (listTypeStack[listTypeStack.length - 1] !== 'bullet') break
+            // Extend past the single separating space, the same way
+            // HeaderMark does above, so the widget's own trailing space
+            // (from its CSS) is the only gap between dash and text.
+            let end = node.to
+            const lineEnd = doc.lineAt(node.from).to
+            while (end < lineEnd && doc.sliceString(end, end + 1) === ' ') end++
+            hideWithWidget(node.from, end, new ListDashWidget())
+            break
+          }
         }
+      },
+      leave: (node) => {
+        if (node.name === 'BulletList' || node.name === 'OrderedList') listTypeStack.pop()
       },
     })
   }
