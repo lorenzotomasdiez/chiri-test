@@ -36,6 +36,7 @@ test('T-CC-MODEL-12: Dropdown dismisses on Escape and outside click, returns foc
   await page.click('[data-testid="editor"]', { position: { x: 200, y: 300 } })
   await expect(panel).not.toBeInViewport()
   expect(await trigger.textContent()).toContain('GPT-4o mini')
+  await expect(trigger).toBeFocused()
 
   // Open the panel a third time with keyboard
   await trigger.focus()
