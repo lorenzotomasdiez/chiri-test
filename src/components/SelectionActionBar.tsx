@@ -79,6 +79,30 @@ export function SelectionActionBar({
   const modelId = useAppStore((s) => s.selectedModelId)
   const apiKey = useAppStore((s) => s.apiKey)
 
+  // T-FR-6-24: the window is the scroll container (CC-SHELL.6), and
+  // `coordsAtPos` below is only ever recomputed on render. Without this, a
+  // window scroll after the bar has already mounted leaves it stranded at
+  // its old viewport coordinates, floating over whatever text scrolled in
+  // underneath it. A scroll never changes CM6 selection state on its own, so
+  // nothing else here would trigger the re-render that recomputes it.
+  const [, trackScroll] = useState(0)
+  useEffect(() => {
+    let raf = 0
+    const onViewportChange = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => trackScroll((n) => n + 1))
+    }
+    // `capture: true`: scroll events do not bubble, and the window itself is
+    // only one of possibly several scrollable ancestors.
+    window.addEventListener('scroll', onViewportChange, true)
+    window.addEventListener('resize', onViewportChange)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('scroll', onViewportChange, true)
+      window.removeEventListener('resize', onViewportChange)
+    }
+  }, [])
+
   const startCoords = view.coordsAtPos(from)
   const endCoords = view.coordsAtPos(to)
   const selectionBottom = Math.max(startCoords?.bottom ?? 0, endCoords?.bottom ?? 0)
