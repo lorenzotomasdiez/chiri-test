@@ -183,13 +183,18 @@ function fixCaretAfterProgrammaticInsert(tr: Transaction): Transaction {
 /**
  * Reads the clipboard and inserts its text at the current selection. Bound
  * explicitly to 'Ctrl-v' above rather than relying on the browser's native
- * paste event, which only fires for the platform's own paste shortcut.
+ * paste event, which only fires for the platform's own paste shortcut. A
+ * denied read permission or a focus-loss race rejects this promise; caught
+ * here so that stays an inert no-op paste instead of an unhandled rejection.
  */
 function pasteFromClipboard(view: EditorView): boolean {
-  navigator.clipboard.readText().then((text) => {
-    if (!text) return
-    view.dispatch(view.state.replaceSelection(text), { scrollIntoView: true })
-  })
+  navigator.clipboard
+    .readText()
+    .then((text) => {
+      if (!text) return
+      view.dispatch(view.state.replaceSelection(text), { scrollIntoView: true })
+    })
+    .catch(() => {})
   return true
 }
 
