@@ -14,10 +14,10 @@ import {
 import { markdown } from '@codemirror/lang-markdown'
 import { livePreview } from '../editor/livePreview'
 import {
+  acceptPendingRevision,
   pendingRevision,
   pendingSpanField,
   setPendingRevision,
-  setPendingRevisionEffect,
 } from '../editor/pendingRevision'
 import { ghostField, ghostText } from '../editor/ghostText'
 import type { Revision } from '../core/revision'
@@ -414,12 +414,7 @@ export function Editor({
     }
     windowHandle.pendingSpanField = pendingSpanField
     windowHandle.setPendingRevision = setPendingRevision
-    windowHandle.acceptRevision = (revision: Revision) => {
-      view.dispatch({
-        changes: { from: revision.from, to: revision.to, insert: revision.proposed },
-        effects: setPendingRevisionEffect.of(null),
-      })
-    }
+    windowHandle.acceptRevision = (revision: Revision) => acceptPendingRevision(view, revision)
     // FR-5's ghost-text specs read the current continuation off this handle
     // rather than scraping the widget's rendered text, published the same
     // way the pending-revision handles above are.
