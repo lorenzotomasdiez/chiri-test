@@ -15,7 +15,7 @@ export function PredictionsToggle() {
       aria-label="Predictions"
       aria-pressed={predictionsEnabled}
       onClick={togglePredictions}
-      className="flex items-center gap-2 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+      className="flex items-center gap-2 rounded active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
     >
       <span className="text-[14px] text-muted opacity-80">Predictions</span>
       <div
