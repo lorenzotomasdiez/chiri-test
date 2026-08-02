@@ -103,7 +103,7 @@ export function KeyGateModal() {
                 value={draft}
                 disabled={isValidating}
                 onChange={(e) => setDraft(e.target.value)}
-                className="h-12 w-full rounded border border-outline bg-transparent px-4 font-mono text-[14px] tracking-wide text-ink placeholder:text-hairline focus:border-ink focus:ring-1 focus:ring-ink focus:outline-none"
+                className="h-12 w-full rounded border border-outline bg-transparent px-4 text-[14px] tracking-wide text-ink placeholder:text-hairline focus:border-ink focus:ring-1 focus:ring-ink focus:outline-none"
               />
             </div>
 
