@@ -496,6 +496,11 @@ class RevisionWidget extends WidgetType {
      * is a second, independent way to submit.
      */
     let refining = false
+    // Tracked outside the function so `destroy` can abort an in-flight turn
+    // whose widget CM6 has already torn down (span invalidated, revision
+    // accepted/rejected, or the document unmounted) - without this the
+    // request keeps running and its `.then` can resurrect a stale proposal.
+    let activeController: AbortController | null = null
 
     async function submitRefinement(): Promise<void> {
       if (refining) return
@@ -512,6 +517,7 @@ class RevisionWidget extends WidgetType {
       const chain = [...(revision.instructionHistory ?? []), instruction]
       const requestBody = buildRefinementRequest(modelId, revision.existing ?? '', chain, revision.proposed)
       const controller = new AbortController()
+      activeController = controller
 
       acceptButton.disabled = true
       rejectButton.disabled = true
@@ -519,6 +525,16 @@ class RevisionWidget extends WidgetType {
 
       try {
         const completion = await requestRevisionCompletion(requestBody, apiKey, controller.signal)
+
+        // The pending revision this turn was refining may have been
+        // accepted, rejected, or invalidated by an edit while the request
+        // was in flight (AC-6.11/AC-6.7). Dispatching against the stale
+        // `revision` captured at widget-creation time would resurrect an
+        // already-dismissed proposal, possibly over the wrong span - bail
+        // instead of applying a response nobody is looking at anymore.
+        const current = view.state.field(pendingSpanField)
+        if (!current || current.id !== revision.id) return
+
         const split = splitRevisionResponse(completion)
         if (!split) {
           // AC-7.6 and AC-12.6 in one: nothing is dispatched, so the visible
@@ -534,7 +550,7 @@ class RevisionWidget extends WidgetType {
 
         view.dispatch({
           effects: setPendingRevisionEffect.of({
-            ...revision,
+            ...current,
             proposed: split.body,
             reason: split.reason,
             instructionHistory: chain,
@@ -550,10 +566,14 @@ class RevisionWidget extends WidgetType {
         )
         freshRefineButton?.focus()
       } catch (error) {
+        // An abort triggered by this widget's own `destroy` is a teardown,
+        // not a failure worth surfacing to a document that has moved on.
+        if (controller.signal.aborted) return
         store.reportRequestFailure(error, () => {
           void submitRefinement()
         })
       } finally {
+        activeController = null
         refining = false
         setRefiningVisible(false)
         acceptButton.disabled = false
@@ -563,6 +583,7 @@ class RevisionWidget extends WidgetType {
     }
 
     submitButton.addEventListener('click', () => void submitRefinement())
+    cleanups.push(() => activeController?.abort())
 
     return wrap
   }
