@@ -376,7 +376,12 @@ export function Editor({
             }
             if (u.selectionSet || u.docChanged) {
               const main = u.state.selection.main
-              setSelection(main.empty ? null : { from: main.from, to: main.to })
+              // AC-6.2/T-FR-6-17: a selection covering only whitespace has no
+              // visible characters to revise, so it raises no action bar,
+              // same as a collapsed (empty) selection.
+              const isWhitespaceOnly =
+                !main.empty && u.state.doc.sliceString(main.from, main.to).trim().length === 0
+              setSelection(main.empty || isWhitespaceOnly ? null : { from: main.from, to: main.to })
             }
             if (u.docChanged || u.transactions.some((tr) => tr.effects.length > 0)) {
               setHasPendingRevision(u.state.field(pendingSpanField, false) != null)
