@@ -72,7 +72,7 @@ export default function App() {
       {/* CC-NAV.12 and CC-PRE.1: the top bar exists on every screen after the
           key gate is passed, and on no screen before it. */}
       {unblocked && <TopBar />}
-      <main className="mx-auto max-w-2xl px-6 pt-24 pb-32">
+      <main className="shell-fade-main mx-auto max-w-2xl px-6 pt-24 pb-32">
         {/* CC-SHELL.5: no height of its own - the column grows with whatever
             is written in it, so the window stays the only scroll container
             (the editor's own min-height below is what keeps the blank space

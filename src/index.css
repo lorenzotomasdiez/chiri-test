@@ -81,6 +81,34 @@ body {
   }
 }
 
+/* CC-MOTION.3: the shell's own entry, distinct from CC-MOTION.1's splash
+   mark - the top bar and document column fade in once, staggered ~100ms
+   apart, when the editor first paints. `both` on the document column holds
+   it at opacity 0 through its delay instead of flashing at full opacity
+   before the fade starts. */
+@keyframes shell-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.shell-fade-topbar {
+  animation: shell-in 0.8s ease-in-out forwards;
+}
+
+.shell-fade-main {
+  animation: shell-in 0.8s ease-in-out 100ms both;
+}
+
+/* CC-MOTION.9: under reduced motion the shell entry becomes an instant
+   state change, the same treatment as the splash mark above. */
+@media (prefers-reduced-motion: reduce) {
+  .shell-fade-topbar,
+  .shell-fade-main {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

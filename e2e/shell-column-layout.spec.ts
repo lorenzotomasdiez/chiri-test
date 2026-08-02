@@ -84,9 +84,9 @@ test('T-CC-SHELL-2: Single centred column with correct dimensions and no rejecte
   const mdTooltip = await page.locator('[title*=".md"]').count()
   expect(mdTooltip).toBe(0)
 
-  // Assert column opacity is 1 when pointer is not near it
-  const mainOpacity = await mainColumn.evaluate(el => window.getComputedStyle(el).opacity)
-  expect(mainOpacity).toBe('1')
+  // Assert column opacity settles at 1 once CC-MOTION.3's one-time shell
+  // entry fade finishes, when the pointer is not near it
+  await expect(mainColumn).toHaveCSS('opacity', '1')
 
   // Assert at least 128px of trailing space beneath the last line
   const lastLineBottomDistance = await mainColumn.evaluate(el => {
