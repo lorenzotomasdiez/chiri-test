@@ -25,6 +25,24 @@ test('T-CC-MODEL-5: Model dropdown panel anatomy and selection (CC-MODEL.1, CC-M
   )
   expect(triggerComputedColor).toBe('rgb(29, 29, 31)')
 
+  // CC-MODEL.1, CC-MODEL.3: Caret rests at reduced opacity and the trigger
+  // has no container fill; hovering brings the caret to full opacity and
+  // gives the trigger a subtle container fill.
+  const caret = trigger.locator('svg')
+  const restOpacity = await caret.evaluate((el) => window.getComputedStyle(el).opacity)
+  expect(Number(restOpacity)).toBeLessThan(1)
+  const restBackground = await trigger.evaluate((el) => window.getComputedStyle(el).backgroundColor)
+  expect(restBackground).toBe('rgba(0, 0, 0, 0)')
+
+  await trigger.hover()
+  await expect(async () => {
+    const hoverOpacity = await caret.evaluate((el) => window.getComputedStyle(el).opacity)
+    expect(Number(hoverOpacity)).toBe(1)
+  }).toPass()
+  const hoverBackground = await trigger.evaluate((el) => window.getComputedStyle(el).backgroundColor)
+  expect(hoverBackground).toBe('rgb(241, 237, 236)')
+  await page.mouse.move(0, 0)
+
   // CC-MODEL.1: Verify no panel in DOM initially
   await expect(page.locator('[data-testid="model-selector-panel"]')).toHaveCount(0)
 
