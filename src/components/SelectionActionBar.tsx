@@ -277,10 +277,6 @@ export function SelectionActionBar({
             aria-live="polite"
             className="flex items-center gap-1.5 text-xs text-ghost"
           >
-            <span
-              aria-hidden="true"
-              className="size-1.5 shrink-0 rounded-full bg-ghost animate-[chiri-pulse_1s_ease-in-out_infinite]"
-            />
             {/* The character count, not the text itself: watching the number
                 climb is the proof that something is arriving, without pinning
                 a proposal on screen before AC-6.9's containment check has run

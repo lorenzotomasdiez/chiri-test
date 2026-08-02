@@ -60,15 +60,6 @@ body {
   animation: splash-in 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-/* The pulse on the revision progress dot. Opacity only - it must read as
-   "still working" in peripheral vision without pulling the eye off the
-   selection the user is looking at. The reduced-motion rule below collapses
-   it to a steady dot, which still says "busy" without moving. */
-@keyframes chiri-pulse {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.3; }
-}
-
 /* CC-MOTION.9: under reduced motion this becomes an instant state change, not
    a fast one. The global rule below collapses the duration, but that would
    still start the mark at opacity 0, so the mark is given its end state
