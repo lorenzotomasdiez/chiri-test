@@ -29,6 +29,7 @@ export function KeyGateModal() {
 
   const inputRef = useRef<HTMLInputElement>(null)
   const isValidating = keyGateState === 'validating'
+  const isRevoked = keyGateState === 'blocked-revoked'
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -68,11 +69,17 @@ export function KeyGateModal() {
               id="key-gate-heading"
               className="text-[30px] leading-tight font-semibold tracking-tight text-ink"
             >
-              Connect your OpenRouter key
+              {isRevoked ? 'Your key stopped working' : 'Connect your OpenRouter key'}
             </h2>
-            {/* CC-GATE.4: this sentence is what SC-9 is judged on, per AC-1.2. */}
+            {/* CC-GATE.4: this sentence is what SC-9 is judged on, per AC-1.2.
+                GAP.4: re-entering the gate mid-session after a revoke (AC-12.4)
+                is a different emotional moment than the first-run gate - the
+                document is safe behind it, which the first-run copy has no
+                reason to promise and this state does. */}
             <p className="text-[15px] leading-relaxed text-muted">
-              Your key is stored only on this machine and sent only to OpenRouter.
+              {isRevoked
+                ? 'OpenRouter rejected your stored key. Your document is safe - reconnect to keep writing.'
+                : 'Your key is stored only on this machine and sent only to OpenRouter.'}
             </p>
           </div>
 
