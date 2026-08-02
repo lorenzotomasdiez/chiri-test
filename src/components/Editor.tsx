@@ -271,6 +271,7 @@ export function Editor({
   const describedByCompartment = useRef(new Compartment()).current
   const onDocChangeRef = useRef(onDocChange)
   const requestFailureMessage = useAppStore((s) => s.requestFailureMessage)
+  const requestFailureKind = useAppStore((s) => s.requestFailureKind)
   const requestRetry = useAppStore((s) => s.requestRetry)
   const clearRequestFailure = useAppStore((s) => s.clearRequestFailure)
   useEffect(() => {
@@ -521,6 +522,7 @@ export function Editor({
       {requestFailureMessage && (
         <FailureBanner
           message={requestFailureMessage}
+          informational={requestFailureKind === 'credit'}
           onRetry={() => {
             const retry = requestRetry
             clearRequestFailure()

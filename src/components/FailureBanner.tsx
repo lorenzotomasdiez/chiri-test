@@ -4,6 +4,13 @@ interface FailureBannerProps {
   message: string
   onRetry: () => void
   onDismiss: () => void
+  /**
+   * CC-BANNER.6: an informational banner - the out-of-credit case is the
+   * named example - drops the error icon and red text and instead takes a
+   * 2px ink left border with an `info` icon. Every other failure stays the
+   * error treatment.
+   */
+  informational?: boolean
 }
 
 /**
@@ -13,14 +20,18 @@ interface FailureBannerProps {
  * this is the generic shape, so any other failing async action in the shell
  * can reuse it instead of inlining its own.
  */
-export function FailureBanner({ message, onRetry, onDismiss }: FailureBannerProps) {
+export function FailureBanner({ message, onRetry, onDismiss, informational = false }: FailureBannerProps) {
   return (
     <div
       data-testid="failure-message"
       role="alert"
-      className="fixed top-14 right-6 z-30 flex items-center gap-3 rounded border border-hairline/30 bg-paper px-4 py-3 text-[14px] text-error shadow-[0_4px_32px_rgba(0,0,0,0.08)]"
+      className={
+        informational
+          ? 'fixed top-14 right-6 z-30 flex items-center gap-3 rounded border-l-2 border-ink bg-paper px-4 py-3 text-[14px] text-ink shadow-[0_4px_32px_rgba(0,0,0,0.08)]'
+          : 'fixed top-14 right-6 z-30 flex items-center gap-3 rounded border border-hairline/30 bg-paper px-4 py-3 text-[14px] text-error shadow-[0_4px_32px_rgba(0,0,0,0.08)]'
+      }
     >
-      <Icon name="error" className="shrink-0 text-error" />
+      <Icon name={informational ? 'info' : 'error'} className={informational ? 'shrink-0 text-ink' : 'shrink-0 text-error'} />
       <span>{message}</span>
       <button
         type="button"
