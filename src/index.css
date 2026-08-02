@@ -1,3 +1,14 @@
+/* CC-TYPE.1/CC-ALL.7: Inter is the single family the whole interface and
+   document depend on, and it must render with the network disabled - so it
+   is self-hosted here rather than declared and left to fall back to
+   whatever the OS ships. Weights: 400/500/600/700 cover body text, the
+   button/label medium weight, the semibold wordmark/labels, and bold
+   emphasis/headings; the 400 italic file covers Markdown emphasis. */
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/400-italic.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
 @import "tailwindcss";
 
 @theme {
