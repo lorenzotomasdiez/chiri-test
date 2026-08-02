@@ -16,7 +16,7 @@
 
 import { StateEffect, StateField } from '@codemirror/state'
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view'
-import type { Revision } from '../core/revision'
+import { resolveRefinementModelId, type Revision } from '../core/revision'
 import { buildRefinementRequest } from '../core/prompt'
 import { MalformedResponseError } from '../core/failure'
 import { splitRevisionResponse } from '../core/provider'
@@ -513,7 +513,7 @@ class RevisionWidget extends WidgetType {
 
       const store = useAppStore.getState()
       const apiKey = store.apiKey
-      const modelId = revision.modelId ?? store.selectedModelId
+      const modelId = resolveRefinementModelId(revision, store.selectedModelId)
       const chain = [...(revision.instructionHistory ?? []), instruction]
       const requestBody = buildRefinementRequest(modelId, revision.existing ?? '', chain, revision.proposed)
       const controller = new AbortController()
