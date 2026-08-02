@@ -10,6 +10,7 @@
   --color-container: #F1EDEC;
   --color-panel: #FFFFFF;
   --color-error: #BA1A1A;
+  --color-banner: #FCFAFA;
 
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
@@ -79,6 +80,30 @@ body {
     opacity: 1;
     transform: none;
   }
+}
+
+/* CC-BANNER.5: a banner enters with a fade plus a short downward slide, and
+   dismisses with a faster fade plus an upward slide. The reduced-motion rule
+   below collapses the duration to near-zero, same as every other animation
+   in the app - the FailureBanner component itself shortens its matching
+   dismiss timer under reduced motion so it never lingers mounted for an
+   animation duration that visually no longer plays. */
+@keyframes banner-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes banner-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-6px); }
+}
+
+.animate-banner-in {
+  animation: banner-in 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-banner-out {
+  animation: banner-out 200ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
