@@ -131,7 +131,7 @@ export function ModelSelector() {
                 key={model.id}
                 data-testid="model-row"
                 role="option"
-                aria-selected={isHighlighted}
+                aria-selected={isSelected}
                 onMouseEnter={() => setHighlightedIndex(index)}
                 onClick={() => commit(index)}
                 style={{
