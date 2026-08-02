@@ -7,6 +7,19 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/')
 })
 
+// Returns the alpha channel of a computed color string. Browsers serialize a
+// translucent color either in the legacy comma syntax (`rgba(r, g, b, a)`) or
+// the modern CSS Color 4 slash syntax (`color(... / a)`, including oklab) -
+// this accepts either so the assertion doesn't depend on which one a given
+// browser or color space picks.
+function alphaOf(color: string): number {
+  const slash = color.match(/\/\s*([\d.]+)\s*\)/)
+  if (slash) return parseFloat(slash[1])
+  const comma = color.match(/^rgba\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*,\s*([\d.]+)\s*\)/)
+  if (comma) return parseFloat(comma[1])
+  return 1
+}
+
 test('T-CC-NAV-1: Top bar anatomy, control order, and labels (CC-BRAND.1, CC-BRAND.2, CC-BRAND.4, CC-NAV.4, CC-NAV.5, CC-NAV.7, CC-NAV.8, CC-ICON.2)', async ({
   page,
 }) => {
@@ -31,7 +44,9 @@ test('T-CC-NAV-1: Top bar anatomy, control order, and labels (CC-BRAND.1, CC-BRA
       paddingLeft: styles.paddingLeft,
       paddingRight: styles.paddingRight,
       backgroundColor: styles.backgroundColor,
-      borderBottom: styles.borderBottom,
+      borderBottomWidth: styles.borderBottomWidth,
+      borderBottomStyle: styles.borderBottomStyle,
+      borderBottomColor: styles.borderBottomColor,
     }
   })
 
@@ -43,10 +58,12 @@ test('T-CC-NAV-1: Top bar anatomy, control order, and labels (CC-BRAND.1, CC-BRA
   expect(computedStyle.paddingRight).toBe('24px')
   expect(computedStyle.backgroundColor).toBe('rgb(253, 248, 248)')
 
-  // Assert bottom border is 1px in hairline colour
-  // hairline colour is #C7C6CA = rgb(199, 198, 202)
-  expect(computedStyle.borderBottom).toContain('1px')
-  expect(computedStyle.borderBottom).toContain('rgb(199, 198, 202)')
+  // Assert bottom border is a 1px hairline at 30% opacity (CC-NAV.2, CC-SHAPE.1):
+  // "separated from the document only by a single hairline along its bottom
+  // edge at 30% opacity", never at full strength (CC-ALL.4).
+  expect(computedStyle.borderBottomWidth).toBe('1px')
+  expect(computedStyle.borderBottomStyle).toBe('solid')
+  expect(alphaOf(computedStyle.borderBottomColor)).toBeCloseTo(0.3, 2)
 
   // Assert wordmark - plain text "Chiri" at far left
   const wordmark = banner.locator('text=Chiri').first()
@@ -116,13 +133,19 @@ test('T-CC-NAV-1: Top bar anatomy, control order, and labels (CC-BRAND.1, CC-BRA
     const styles = window.getComputedStyle(el)
     return {
       width: styles.width,
-      borderLeft: styles.borderLeft,
+      borderLeftWidth: styles.borderLeftWidth,
+      borderLeftColor: styles.borderLeftColor,
     }
   })
 
-  // Divider should be 1px wide with hairline colour
+  // Divider should be 1px wide, in the hairline colour, and never at full
+  // strength (CC-SHAPE.1, CC-ALL.4) - it must be one of the permitted 10-30%
+  // opacities, not the plain full-opacity hairline colour.
   expect(dividerStyle.width).toBe('1px')
-  expect(dividerStyle.borderLeft).toContain('rgb(199, 198, 202)')
+  expect(dividerStyle.borderLeftWidth).toBe('1px')
+  const dividerAlpha = alphaOf(dividerStyle.borderLeftColor)
+  expect(dividerAlpha).toBeGreaterThanOrEqual(0.1)
+  expect(dividerAlpha).toBeLessThanOrEqual(0.3)
 
   // Assert Copy and Download buttons have icons and text labels
   const copyButton = controls.filter({ hasText: 'Copy' }).first()
