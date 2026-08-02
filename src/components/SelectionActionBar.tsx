@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { EditorView } from '@codemirror/view'
+import { EditorSelection } from '@codemirror/state'
 import { useAppStore } from '../state/store'
 import { buildRevisionRequest } from '../core/prompt'
 import { checkParagraphCount, validateResponseSpan } from '../core/revision'
@@ -55,6 +56,41 @@ export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) 
   const [streamed, setStreamed] = useState('')
   const modelId = useAppStore((s) => s.selectedModelId)
   const apiKey = useAppStore((s) => s.apiKey)
+  const barRef = useRef<HTMLDivElement>(null)
+
+  // CC-PANEL.5: every floating panel dismisses on Escape and on outside
+  // click. Collapsing the CM6 selection to a cursor is the dismissal itself
+  // - Editor.tsx renders this bar only while the selection is non-empty, so
+  // there is no separate "closed" state to track here.
+  useEffect(() => {
+    function dismiss() {
+      view.dispatch({ selection: EditorSelection.cursor(from) })
+      view.focus()
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        dismiss()
+      }
+    }
+
+    function onPointerDown(event: MouseEvent) {
+      const target = event.target as Node
+      // A click inside the editor is left to CM6's own selection handling
+      // (which already updates or clears the bar); only a click that lands
+      // fully outside both the bar and the editor counts as "outside".
+      if (barRef.current?.contains(target) || view.dom.contains(target)) return
+      dismiss()
+    }
+
+    document.addEventListener('keydown', onKeyDown)
+    document.addEventListener('mousedown', onPointerDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      document.removeEventListener('mousedown', onPointerDown)
+    }
+  }, [view, from])
 
   const startCoords = view.coordsAtPos(from)
   const endCoords = view.coordsAtPos(to)
@@ -145,6 +181,7 @@ export function SelectionActionBar({ view, from, to }: SelectionActionBarProps) 
     // all (CC-PANEL.2) - the hairline is what separates it from the paper. The
     // computed position is the one thing that cannot be a class.
     <div
+      ref={barRef}
       data-testid="selection-action-bar"
       className="fixed z-50 flex w-[540px] flex-col overflow-hidden rounded-lg border border-hairline/30 bg-panel p-1"
       style={{ top, left }}
